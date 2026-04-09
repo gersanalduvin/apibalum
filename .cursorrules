@@ -1,0 +1,81 @@
+# Project Rules: Laravel Backend (apicmpp)
+
+## 1. General Principles
+- **Framework**: Laravel (API usage only).
+- **Responses**: JSON exclusively.
+- **Design Pattern**: SOLID, Service-Repository Pattern.
+- **Structure**: Modular CRUDs with versioned routes (Api/V1).
+
+## 2. Architecture & Directory Structure
+- **Controllers**: `app/Http/Controllers/Api/V1`
+  - *Responsibility*: Endpoint entry, request validation, calling Service, returning JSON.
+  - *Naming*: `PascalCase` (e.g., `UserController`).
+- **Services**: `app/Services`
+  - *Responsibility*: Business logic, transactions, complex operations.
+  - *Naming*: `UserService`.
+- **Repositories**: `app/Repositories`
+  - *Responsibility*: Database interaction (Eloquent), clean data access.
+  - *Naming*: `UserRepository`.
+- **Requests**: `app/Http/Requests/Api/V1`
+  - *Responsibility*: Validation rules.
+- **Routes**: `routes/api/v1/`
+  - *Registration*: `routes/api.php` prefixes `v1` and requires the files.
+
+## 3. Implementation Workflow (New CRUD)
+1. **Model & Migration**: 
+   - Must include `created_by`, `updated_by`, `deleted_by`, `deleted_at` (SoftDeletes).
+   - **MANDATORY**: Apply `Auditable` trait to the Model.
+   - **MANDATORY**: Add auditing columns in migration.
+   - Register model in `AuditController` mapping.
+2. **Repository**: Create in `app/Repositories`.
+3. **Service**: Create in `app/Services`.
+4. **Request**: Create in `app/Http/Requests/Api/V1`.
+5. **Controller**: Create in `app/Http/Controllers/Api/V1` (Inject Service).
+6. **Routes**: Define in `routes/api/v1/[module].php` and register in `routes/api.php`.
+7. **Permissions**: Create permissions in the permission service.
+8. **Documentation**: Document API in `Documentation/`.
+
+## 4. Response Standards
+**Success (200)**
+```json
+{
+    "success": true,
+    "data": { ... },
+    "message": "Operación exitosa"
+}
+```
+
+**Error (400-500)**
+```json
+{
+    "success": false,
+    "message": "Error message",
+    "errors": { ... }
+}
+```
+
+**Validation Error (422)**
+```json
+{
+    "success": false,
+    "message": "Validation errors",
+    "errors": {
+        "email": ["Field is required"]
+    }
+}
+```
+
+## 5. Auditing Rules (Crucial)
+- **Trait**: `use SoftDeletes, Auditable;`
+- **Migration**:
+  ```php
+  $table->unsignedBigInteger('created_by')->nullable();
+  $table->unsignedBigInteger('updated_by')->nullable();
+  $table->unsignedBigInteger('deleted_by')->nullable();
+  $table->softDeletes();
+  ```
+- **Verification**: Run `php artisan audit:test`.
+
+## 6. Offline Sync (If applicable)
+- Use fields: `uuid`, `is_synced`, `synced_at`, `updated_locally_at`, `version`.
+- Logic: Create offline (`is_synced=false`) -> Sync when online -> Server resolves conflicts.

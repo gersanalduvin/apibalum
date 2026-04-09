@@ -1,0 +1,10 @@
+=== DUPLICATED PERMISSIONS IN DEFINITION ===
+No duplicates found.
+
+=== UNUSED PERMISSIONS (Defined but not found in Routes or Frontend) ===
+
+=== UNDEFINED PERMISSIONS USED (Found in code but not in Service) ===
+
+Total Defined: 260
+Total Used in Backend: 253
+Total Used in Frontend: 118

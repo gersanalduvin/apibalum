@@ -1,0 +1,73 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\Auditable;
+
+class {{ class }} extends Model
+{
+    use SoftDeletes, Auditable;
+
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = '{{ table }}';
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        // Agregar aquí los campos específicos del modelo
+        'created_by',
+        'updated_by',
+        'deleted_by'
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'deleted_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        
+    ];
+
+    /**
+     * Campos que no deben ser auditados
+     *
+     * @var array
+     */
+    protected $nonAuditableFields = [
+        'updated_at', 
+        'created_at', 
+        'deleted_at'
+    ];
+
+    /**
+     * Eventos que deben ser auditados
+     *
+     * @var array
+     */
+    protected $auditableEvents = [
+        'created',
+        'updated', 
+        'deleted'
+    ];
+}

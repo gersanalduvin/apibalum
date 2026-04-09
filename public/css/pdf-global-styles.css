@@ -1,0 +1,43 @@
+/* Estilos globales para todos los PDFs generados */
+* {
+    font-family: Arial, sans-serif !important;
+}
+
+body {
+    font-family: Arial, sans-serif !important;
+    font-size: 12pt;
+    line-height: 1.4;
+}
+
+/* Asegurar que todos los elementos de texto usen Arial */
+h1, h2, h3, h4, h5, h6, p, div, span, td, th, li, label, input, textarea, select {
+    font-family: Arial, sans-serif !important;
+}
+
+/* Estilos específicos para tablas */
+table {
+    font-family: Arial, sans-serif !important;
+}
+
+/* Estilos para formularios */
+.form-group label,
+.form-control,
+input[type="text"],
+input[type="email"],
+input[type="number"],
+textarea,
+select {
+    font-family: Arial, sans-serif !important;
+}
+
+/* Asegurar que el texto en negrita mantenga Arial */
+strong, b {
+    font-family: Arial, sans-serif !important;
+    font-weight: bold;
+}
+
+/* Asegurar que el texto en cursiva mantenga Arial */
+em, i {
+    font-family: Arial, sans-serif !important;
+    font-style: italic;
+}

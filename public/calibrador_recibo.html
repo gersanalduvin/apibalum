@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calibrador de Recibos</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #f0f0f0; padding: 20px; }
+        .controls { margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 800px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        .workspace { position: relative; border: 1px solid #ccc; background: white; box-shadow: 0 0 20px rgba(0,0,0,0.1); overflow: hidden; }
+        /* Letter size aprox in screen pixels (assuming 96dpi approx or scaled) */
+        /* 216mm x 279mm -> ratio ~0.77 */
+        /* Let's use a fixed height and calc width to maintain aspect ratio */
+        .workspace { 
+            height: 1000px; 
+            width: 774px; /* 1000 * (216/279) */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        .field {
+            position: absolute;
+            background: rgba(0, 123, 255, 0.3);
+            border: 1px solid #007bff;
+            color: #000;
+            font-size: 12px;
+            padding: 2px 5px;
+            cursor: move;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .field:hover { background: rgba(0, 123, 255, 0.5); z-index: 10; }
+        .field.active { background: rgba(40, 167, 69, 0.5); border-color: #28a745; z-index: 20; }
+        
+        #output { width: 100%; height: 200px; font-family: monospace; margin-top: 20px; }
+        .hint { font-size: 0.9em; color: #666; width: 100%; text-align: center; margin-top: 5px; }
+
+        /* Generic field styling */
+        .field-box { min-width: 50px; min-height: 20px; display: flex; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <div>
+            <label for="bgInput">1. Cargar Imagen del Recibo (Escaneado/Foto):</label><br>
+            <input type="file" id="bgInput" accept="image/*">
+        </div>
+        <div>
+            <button onclick="generateConfig()">2. Generar Configuración</button>
+        </div>
+        <p class="hint">Arrastra los elementos azules para que coincidan con los espacios en tu imagen.</p>
+    </div>
+
+    <div class="workspace" id="workspace">
+        <!-- Fields from config/recibo_externo_layout.php -->
+        <div class="field field-box" id="numero_recibo" style="left: 60%; top: 16%;">No. Recibo</div>
+        
+        <div class="field field-box" id="fecha_dia" style="left: 11%; top: 22%;">Día</div>
+        <div class="field field-box" id="fecha_mes" style="left: 17%; top: 22%;">Mes</div>
+        <div class="field field-box" id="fecha_anio" style="left: 23%; top: 22%;">Año</div>
+        
+        <div class="field field-box" id="recibi_de" style="left: 13%; top: 36%;">Recibí de (Nombre)</div>
+        <div class="field field-box" id="por_cordoba" style="left: 67%; top: 36%;">Monto C$</div>
+        <div class="field field-box" id="por_dolar" style="left: 82%; top: 36%;">Monto U$</div>
+        
+        <div class="field field-box" id="cantidad_letras" style="left: 22%; top: 42%;">Suma en Letras</div>
+        <div class="field field-box" id="concepto" style="left: 22%; top: 48%;">Concepto</div>
+        
+        <div class="field field-box" id="efectivo_checkbox" style="left: 13%; top: 69%;">[ ] Efectivo</div>
+        <div class="field field-box" id="cheque_checkbox" style="left: 24%; top: 69%;">[ ] Cheque</div>
+        
+        <div class="field field-box" id="cheque_numero" style="left: 33%; top: 69%;">No. Cheque</div>
+        <div class="field field-box" id="banco" style="left: 62%; top: 69%;">Banco</div>
+        
+        <div class="field field-box" id="firma" style="left: 56%; top: 85%;">Firma</div>
+    </div>
+
+    <div class="controls">
+        <textarea id="output" readonly placeholder="Aquí aparecerá el código de configuración..."></textarea>
+    </div>
+
+    <script>
+        const workspace = document.getElementById('workspace');
+        const bgInput = document.getElementById('bgInput');
+        let activeElement = null;
+        let initialX, initialY, initialLeft, initialTop;
+
+        // 1. Handle Image Upload
+        bgInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    workspace.style.backgroundImage = `url(${evt.target.result})`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 2. Drag Logic
+        document.querySelectorAll('.field').forEach(el => {
+            el.addEventListener('mousedown', dragStart);
+        });
+
+        function dragStart(e) {
+            activeElement = e.target;
+            activeElement.classList.add('active');
+            
+            // Get initial mouse pos
+            initialX = e.clientX;
+            initialY = e.clientY;
+
+            // Get initial element pos as pixels
+            const rect = activeElement.getBoundingClientRect();
+            const parentRect = workspace.getBoundingClientRect();
+            
+            // We work with percent styles, but for dragging we need pixels temporarily or just offset
+            // Let's compute current pixel offset relative to parent
+            initialLeft = activeElement.offsetLeft;
+            initialTop = activeElement.offsetTop;
+
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', dragEnd);
+        }
+
+        function drag(e) {
+            if (!activeElement) return;
+            e.preventDefault();
+
+            const dx = e.clientX - initialX;
+            const dy = e.clientY - initialY;
+
+            // Constrain to workspace
+            let newLeft = initialLeft + dx;
+            let newTop = initialTop + dy;
+
+            // Basic bounds checking
+            const maxLeft = workspace.clientWidth - activeElement.clientWidth;
+            const maxTop = workspace.clientHeight - activeElement.clientHeight;
+
+            // newLeft = Math.max(0, Math.min(newLeft, maxLeft)); // Optional: allow slight overflow if needed
+            // newTop = Math.max(0, Math.min(newTop, maxTop));
+
+            // Convert back to % for style to keep it responsive-ish
+            const leftPct = (newLeft / workspace.clientWidth) * 100;
+            const topPct = (newTop / workspace.clientHeight) * 100;
+
+            activeElement.style.left = leftPct.toFixed(2) + '%';
+            activeElement.style.top = topPct.toFixed(2) + '%';
+        }
+
+        function dragEnd(e) {
+            if (activeElement) {
+                activeElement.classList.remove('active');
+                activeElement = null;
+            }
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', dragEnd);
+        }
+
+        // 3. Generate Config
+        window.generateConfig = function() {
+            const fields = document.querySelectorAll('.field');
+            let phpArray = "    'fields' => [\n";
+            phpArray += "        // Coordenadas generadas por el Calibrador\n";
+
+            fields.forEach(field => {
+                // Get style left/top which are already in %
+                // Parse float to remove % and clean up
+                let left = parseFloat(field.style.left);
+                let top = parseFloat(field.style.top);
+                
+                // If unset (shouldn't happen with inline styles), compute
+                if (isNaN(left)) left = (field.offsetLeft / workspace.clientWidth) * 100;
+                if (isNaN(top)) top = (field.offsetTop / workspace.clientHeight) * 100;
+
+                phpArray += `        '${field.id}' => ['x' => ${Math.round(left)}, 'y' => ${Math.round(top)}],\n`;
+            });
+
+            phpArray += "    ],";
+            
+            document.getElementById('output').value = phpArray;
+            document.getElementById('output').select();
+            // alert('Configuración generada. Copia el texto y reemplaza la sección "fields" en tu archivo de configuración.');
+        }
+    </script>
+</body>
+</html>
