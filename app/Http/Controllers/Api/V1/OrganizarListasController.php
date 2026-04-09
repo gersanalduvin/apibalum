@@ -46,11 +46,10 @@ class OrganizarListasController extends Controller
         if ($g) $query->where('users_grupos.grado_id',$g);
         if ($t) $query->where('users_grupos.turno_id',$t);
 
-        $alumnos = $query->orderBy('users.sexo','desc')
-            ->orderBy('users.primer_nombre','asc')
-            ->orderBy('users.segundo_nombre','asc')
-            ->orderBy('users.primer_apellido','asc')
-            ->orderBy('users.segundo_apellido','asc')
+        $alumnos = $query->orderBy('users.primer_apellido', 'asc')
+            ->orderBy('users.segundo_apellido', 'asc')
+            ->orderBy('users.primer_nombre', 'asc')
+            ->orderBy('users.segundo_nombre', 'asc')
             ->get();
 
         return $this->successResponse($alumnos,'Alumnos obtenidos exitosamente');

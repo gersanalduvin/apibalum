@@ -400,7 +400,7 @@ class LessonPlanService
             ->select([
                 'agd.user_id',
                 'u.email',
-                DB::raw("CONCAT_WS(' ', u.primer_nombre, u.segundo_nombre, u.primer_apellido, u.segundo_apellido) as docente_nombre"),
+                DB::raw("CONCAT(COALESCE(u.primer_nombre,''),' ',COALESCE(u.segundo_nombre,''),' ',COALESCE(u.primer_apellido,''),' ',COALESCE(u.segundo_apellido,'')) as docente_nombre"),
                 'agd.asignatura_grado_id',
                 'm.nombre as asignatura_nombre',
                 'agd.grupo_id',
@@ -499,7 +499,7 @@ class LessonPlanService
             ->whereNull('g.deleted_at')
             ->select([
                 'agd.user_id',
-                DB::raw("CONCAT_WS(' ', u.primer_nombre, u.segundo_nombre, u.primer_apellido, u.segundo_apellido) as docente_nombre"),
+                DB::raw("CONCAT(COALESCE(u.primer_nombre,''),' ',COALESCE(u.segundo_nombre,''),' ',COALESCE(u.primer_apellido,''),' ',COALESCE(u.segundo_apellido,'')) as docente_nombre"),
                 'agd.asignatura_grado_id',
                 'm.nombre as asignatura_nombre',
                 'agd.grupo_id',

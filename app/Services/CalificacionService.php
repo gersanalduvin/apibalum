@@ -88,7 +88,8 @@ class CalificacionService
                 'users_grupos.id as users_grupo_id',
                 DB::raw("CONCAT(COALESCE(users.primer_nombre,''),' ',COALESCE(users.segundo_nombre,''),' ',COALESCE(users.primer_apellido,''),' ',COALESCE(users.segundo_apellido,'')) as nombre_completo")
             )
-            ->orderBy('users.sexo', 'desc')
+            ->orderBy('users.primer_apellido', 'asc')
+            ->orderBy('users.segundo_apellido', 'asc')
             ->orderBy('users.primer_nombre', 'asc')
             ->get();
 

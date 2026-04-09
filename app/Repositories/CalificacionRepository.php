@@ -24,11 +24,10 @@ class CalificacionRepository implements CalificacionRepositoryInterface
                 'users.email as correo',
                 'users.sexo'
             )
-            ->orderBy('users.sexo', 'desc')
-            ->orderBy('users.primer_nombre', 'asc')
-            ->orderBy('users.segundo_nombre', 'asc')
             ->orderBy('users.primer_apellido', 'asc')
             ->orderBy('users.segundo_apellido', 'asc')
+            ->orderBy('users.primer_nombre', 'asc')
+            ->orderBy('users.segundo_nombre', 'asc')
             ->get();
 
         // 2. Get evidences for this corte + asignatura config

@@ -158,11 +158,10 @@ class UsersGrupoRepository
         if ($grupoId) $query->where('users_grupos.grupo_id', $grupoId);
         if ($turnoId) $query->where('users_grupos.turno_id', $turnoId);
 
-        return $query->orderBy('users.sexo', 'desc')
+        return $query->orderBy('users.primer_apellido', 'asc')
+            ->orderBy('users.segundo_apellido', 'asc')
             ->orderBy('users.primer_nombre', 'asc')
             ->orderBy('users.segundo_nombre', 'asc')
-            ->orderBy('users.primer_apellido', 'asc')
-            ->orderBy('users.segundo_apellido', 'asc')
             ->get();
     }
 }

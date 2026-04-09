@@ -928,16 +928,11 @@ class User extends Authenticatable
     /**
      * Obtener el nombre completo del estudiante
      */
-    public function getNombreCompletoAttribute(): string
+    public function getNombreCompletoAttribute()
     {
-        $nombres = array_filter([
-            $this->primer_nombre,
-            $this->segundo_nombre,
-            $this->primer_apellido,
-            $this->segundo_apellido
-        ]);
-
-        return implode(' ', $nombres);
+        $nombres = trim(($this->primer_nombre ?? '') . ' ' . ($this->segundo_nombre ?? ''));
+        $apellidos = trim(($this->primer_apellido ?? '') . ' ' . ($this->segundo_apellido ?? ''));
+        return trim($nombres . ' ' . $apellidos);
     }
 
     /**
@@ -945,14 +940,7 @@ class User extends Authenticatable
      */
     public function getNameAttribute(): string
     {
-        $nombres = array_filter([
-            $this->primer_nombre,
-            $this->segundo_nombre,
-            $this->primer_apellido,
-            $this->segundo_apellido
-        ]);
-
-        return implode(' ', $nombres);
+        return $this->nombre_completo;
     }
 
     public function getFechaNacimientoEspanolAttribute(): ?string
