@@ -129,8 +129,9 @@
 <body>
     <div class="header">
         <div class="logo">
-            @if(file_exists(public_path('logopp.png')))
-            <img src="{{ public_path('logopp.png') }}" alt="Logo" style="width: 60px;">
+            @php $logoFullPath = public_path($logoPath); @endphp
+            @if(file_exists($logoFullPath))
+            <img src="{{ $logoFullPath }}" alt="Logo" style="width: 60px;">
             @else
             <div style="width: 60px; height: 60px; border: 1px dashed #ccc; margin: 0 auto; line-height: 60px; font-size: 10px; color: #999;">LOGO</div>
             @endif

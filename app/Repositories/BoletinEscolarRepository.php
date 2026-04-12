@@ -252,6 +252,135 @@ class BoletinEscolarRepository implements BoletinEscolarRepositoryInterface
     }
 
     /**
+     * Get all grades for a group and a set of subjects (Optimized Batch Fetching)
+     */
+    public function getCalificacionesByGrupo(int $grupoId, int $periodoLectivoId)
+    {
+        // 1. Get grades from Evidences (Legacy/Evaluation System)
+        $evidenceGrades = DB::table('not_calificaciones as nc')
+            ->join('not_asignatura_grado_cortes_evidencias as nagce', 'nc.evidencia_id', '=', 'nagce.id')
+            ->join('not_asignatura_grado_cortes as nagc', 'nagce.asignatura_grado_cortes_id', '=', 'nagc.id')
+            ->join('not_asignatura_grado as nag', 'nagc.asignatura_grado_id', '=', 'nag.id')
+            ->join('config_not_semestre_parciales as cnsp', 'nagc.corte_id', '=', 'cnsp.id')
+            ->join('config_not_semestre as cns', 'cnsp.semestre_id', '=', 'cns.id')
+            ->join('users_grupos as ug', 'nc.user_id', '=', 'ug.user_id')
+            ->where('ug.grupo_id', $grupoId)
+            ->where('nag.periodo_lectivo_id', $periodoLectivoId) 
+            ->whereNull('nagce.deleted_at')
+            ->whereNull('nagc.deleted_at')
+            ->select(
+                'nc.user_id',
+                'nagc.asignatura_grado_id',
+                'nc.nota',
+                'cnsp.id as corte_id',
+                'cnsp.nombre as corte_nombre',
+                'cnsp.orden as corte_orden',
+                'cns.id as semestre_id',
+                'cns.nombre as semestre_nombre',
+                'cns.orden as semestre_orden',
+                DB::raw('NULL as indicador_config'),
+                DB::raw('NULL as indicadores_check'),
+                DB::raw('NULL as evidence_name'),
+                'nc.evidencia_id as evidence_id',
+                DB::raw('NULL as evidencia_estudiante_id')
+            );
+
+        // 2. Get grades from Tasks (New/Task System)
+        $taskGrades = DB::table('not_calificaciones_tareas as nct')
+            ->join('not_tareas as nt', 'nct.tarea_id', '=', 'nt.id')
+            ->join('config_not_semestre_parciales as cnsp', 'nt.corte_id', '=', 'cnsp.id')
+            ->join('config_not_semestre as cns', 'cnsp.semestre_id', '=', 'cns.id')
+            ->join('not_asignatura_grado_docente as nagd', 'nt.asignatura_grado_docente_id', '=', 'nagd.id')
+            ->join('not_asignatura_grado as nag', 'nagd.asignatura_grado_id', '=', 'nag.id')
+            ->join('users_grupos as ug', function($join) {
+                $join->on('nct.estudiante_id', '=', 'ug.user_id')
+                     ->on('nagd.grupo_id', '=', 'ug.grupo_id');
+            })
+            ->where('ug.grupo_id', $grupoId)
+            ->where('nag.periodo_lectivo_id', $periodoLectivoId)
+            ->whereNull('nt.deleted_at')
+            ->select(
+                'nct.estudiante_id as user_id',
+                'nagd.asignatura_grado_id',
+                'nct.nota',
+                'cnsp.id as corte_id',
+                'cnsp.nombre as corte_nombre',
+                'cnsp.orden as corte_orden',
+                'cns.id as semestre_id',
+                'cns.nombre as semestre_nombre',
+                'cns.orden as semestre_orden',
+                DB::raw('NULL as indicador_config'),
+                DB::raw('NULL as indicadores_check'),
+                DB::raw('NULL as evidence_name'),
+                'nt.evidencia_id as evidence_id',
+                DB::raw('NULL as evidencia_estudiante_id')
+            );
+
+        // 3. Get qualitative grades from General Evidences (Iniciativa)
+        $qualitativeGrades = DB::table('not_calificaciones_evidencias as nce')
+            ->join('not_asignatura_grado_cortes_evidencias as nagce', 'nce.evidencia_id', '=', 'nagce.id')
+            ->join('not_asignatura_grado_cortes as nagc', 'nagce.asignatura_grado_cortes_id', '=', 'nagc.id')
+            ->join('not_asignatura_grado as nag', 'nagc.asignatura_grado_id', '=', 'nag.id')
+            ->join('config_not_semestre_parciales as cnsp', 'nagc.corte_id', '=', 'cnsp.id')
+            ->join('config_not_semestre as cns', 'cnsp.semestre_id', '=', 'cns.id')
+            ->join('users_grupos as ug', 'nce.estudiante_id', '=', 'ug.user_id')
+            ->leftJoin('config_not_escala_detalle as cned', 'nce.escala_detalle_id', '=', 'cned.id')
+            ->where('ug.grupo_id', $grupoId)
+            ->where('nag.periodo_lectivo_id', $periodoLectivoId)
+            ->whereNull('nce.deleted_at')
+            ->select(
+                'nce.estudiante_id as user_id',
+                'nagc.asignatura_grado_id',
+                'cned.abreviatura as nota', 
+                'cnsp.id as corte_id',
+                'cnsp.nombre as corte_nombre',
+                'cnsp.orden as corte_orden',
+                'cns.id as semestre_id',
+                'cns.nombre as semestre_nombre',
+                'cns.orden as semestre_orden',
+                'nagce.indicador as indicador_config',
+                'nce.indicadores_check as indicadores_check',
+                'nagce.evidencia as evidence_name',
+                'nce.evidencia_id as evidence_id',
+                'nce.evidencia_estudiante_id as evidencia_estudiante_id'
+            );
+
+        // 4. Get qualitative grades from Personalized Evidences (Iniciativa)
+        $personalizedGrades = DB::table('not_calificaciones_evidencias as nce')
+            ->join('not_evidencias_estudiante_especial as neee', 'nce.evidencia_estudiante_id', '=', 'neee.id')
+            ->join('not_asignatura_grado_cortes as nagc', 'neee.asignatura_grado_cortes_id', '=', 'nagc.id')
+            ->join('not_asignatura_grado as nag', 'nagc.asignatura_grado_id', '=', 'nag.id')
+            ->join('config_not_semestre_parciales as cnsp', 'nagc.corte_id', '=', 'cnsp.id')
+            ->join('config_not_semestre as cns', 'cnsp.semestre_id', '=', 'cns.id')
+            ->join('users_grupos as ug', 'nce.estudiante_id', '=', 'ug.user_id')
+            ->leftJoin('config_not_escala_detalle as cned', 'nce.escala_detalle_id', '=', 'cned.id')
+            ->where('ug.grupo_id', $grupoId)
+            ->where('nag.periodo_lectivo_id', $periodoLectivoId)
+            ->whereNull('nce.deleted_at')
+            ->select(
+                'nce.estudiante_id as user_id',
+                'nagc.asignatura_grado_id',
+                'cned.abreviatura as nota', 
+                'cnsp.id as corte_id',
+                'cnsp.nombre as corte_nombre',
+                'cnsp.orden as corte_orden',
+                'cns.id as semestre_id',
+                'cns.nombre as semestre_nombre',
+                'cns.orden as semestre_orden',
+                'neee.indicador as indicador_config',
+                'nce.indicadores_check as indicadores_check',
+                'neee.evidencia as evidence_name',
+                'nce.evidencia_id as evidence_id',
+                'nce.evidencia_estudiante_id as evidencia_estudiante_id'
+            );
+
+        return $evidenceGrades->unionAll($taskGrades)
+            ->unionAll($qualitativeGrades)
+            ->unionAll($personalizedGrades)
+            ->get();
+    }
+
+    /**
      * Get semesters with their evaluation cuts for a specific academic period
      */
     public function getSemestresConCortes(int $periodoLectivoId)

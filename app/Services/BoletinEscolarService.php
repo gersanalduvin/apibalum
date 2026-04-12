@@ -94,35 +94,45 @@ class BoletinEscolarService
             }
         }
 
+        // Fetch ALL grades for the group at once to avoid N+1 queries
+        $allGradesRaw = $this->repository->getCalificacionesByGrupo($grupoId, $periodoLectivoId);
+        
+        // Group grades by [student_id][subject_id] for O(1) in-memory access
+        $groupedGrades = [];
+        foreach ($allGradesRaw as $g) {
+            $groupedGrades[$g->user_id][$g->asignatura_grado_id][] = $g;
+        }
+
+        // Fetch all observations for the group once
+        $allObservations = \App\Models\StudentObservation::where('grupo_id', $grupoId)
+            ->where('periodo_lectivo_id', $periodoLectivoId)
+            ->get()
+            ->groupBy('user_id');
+
         foreach ($grupo->estudiantes as $estudiante) {
             $calificacionesPorAsignatura = [];
+            $studentGradesMap = $groupedGrades[$estudiante->user_id] ?? [];
+
+            // 1.1 Pre-scan special curriculum status for this student once
+            $studentIsSpecial = false;
+            foreach ($studentGradesMap as $subGrades) {
+                foreach ($subGrades as $grade) {
+                    if (!empty($grade->evidencia_estudiante_id)) {
+                        $studentIsSpecial = true;
+                        break 2;
+                    }
+                }
+            }
 
             foreach ($asignaturasConAreas as $areaData) {
                 foreach ($areaData['asignaturas'] as $asignatura) {
 
-                    // 1.1 Pre-scan special curriculum status for this student across ALL subjects
-                    $studentIsSpecial = false;
-                    foreach ($asignaturasConAreas as $areaP) {
-                        foreach ($areaP['asignaturas'] as $asigP) {
-                            $califP = $this->repository->getCalificacionesByEstudiante($estudiante->user_id, $asigP->id);
-                            foreach ($califP as $cP) {
-                                if (!empty($cP->evidencia_estudiante_id)) {
-                                    $studentIsSpecial = true;
-                                    break 3;
-                                }
-                            }
-                        }
-                    }
-
                     if ($asignatura->hijas->count() > 0) {
                         // PARENT SUBJECT LOGIC
-                        $notasPorCorte = $this->organizarNotasPadrePorCorte($estudiante->user_id, $asignatura, $flatAsignaturas, $grupoId, $isQualitative, $studentIsSpecial);
+                        $notasPorCorte = $this->organizarNotasPadrePorCorte($estudiante->user_id, $asignatura, $flatAsignaturas, $grupoId, $isQualitative, $studentIsSpecial, $groupedGrades);
                     } else {
                         // REGULAR SUBJECT LOGIC
-                        $calificaciones = $this->repository->getCalificacionesByEstudiante(
-                            $estudiante->user_id,
-                            $asignatura->id
-                        );
+                        $calificaciones = $studentGradesMap[$asignatura->id] ?? [];
                         $notasPorCorte = $this->organizarNotasPorCorte($calificaciones, $asignatura, $isQualitative, $studentIsSpecial);
                     }
 
@@ -140,19 +150,16 @@ class BoletinEscolarService
                 }
             }
 
-            // Fetch Observations
-            $observacion = null;
-            $observacionQuery = \App\Models\StudentObservation::where('user_id', $estudiante->user_id)
-                ->where('periodo_lectivo_id', $periodoLectivoId)
-                ->where('grupo_id', $grupoId);
-
+            // Fetch Observations from map
+            $studentObs = $allObservations->get($estudiante->user_id, new \Illuminate\Database\Eloquent\Collection());
+            $observacion = '';
+            
             if ($corteId) {
-                $observacionQuery->where('parcial_id', $corteId);
-                $obsModel = $observacionQuery->first();
+                $obsModel = $studentObs->where('parcial_id', $corteId)->first();
                 $observacion = $obsModel ? $obsModel->observacion : '';
             } else {
-                $allObs = $observacionQuery->orderBy('created_at', 'desc')->get();
-                $observacion = $allObs->first() ? $allObs->first()->observacion : '';
+                $obsModel = $studentObs->sortByDesc('created_at')->first();
+                $observacion = $obsModel ? $obsModel->observacion : '';
             }
 
             // Organize Absences for this student
@@ -214,7 +221,7 @@ class BoletinEscolarService
             ->setOption('margin-right', '5mm')
             ->setOption('footer-font-size', 8)
             ->setOption('disable-smart-shrinking', true)
-            ->setOption('zoom', 1.25)
+            ->setOption('zoom', 1.0)
             ->setOption('dpi', 72);
 
         return $pdf;
@@ -383,10 +390,11 @@ class BoletinEscolarService
     /**
      * Logic for Parent Subjects: Averages of children's final notes for each corte
      */
-    private function organizarNotasPadrePorCorte($estudianteId, $parentAsig, $flatAsignaturas, $grupoId, bool $forceQualitative = false, bool $isSpecialStudent = false)
+    private function organizarNotasPadrePorCorte($estudianteId, $parentAsig, $flatAsignaturas, $grupoId, bool $forceQualitative = false, bool $isSpecialStudent = false, $allGradesMap = [])
     {
         $notasPorCortePadre = [];
         $hijas = $parentAsig->hijas;
+        $studentGradesMap = $allGradesMap[$estudianteId] ?? [];
 
         // We only consider cortes assigned to the PARENT
         $assignedCortes = $parentAsig->cortes->pluck('corte_id')->toArray();
@@ -401,7 +409,7 @@ class BoletinEscolarService
                 $hijaAsig = $flatAsignaturas[$hijaId] ?? \App\Models\NotAsignaturaGrado::with('cortes')->find($hijaId);
 
                 if ($hijaAsig) {
-                    $calificacionesHija = $this->repository->getCalificacionesByEstudiante($estudianteId, $hijaId);
+                    $calificacionesHija = $studentGradesMap[$hijaId] ?? [];
                     $hijaCortesData = $this->organizarNotasPorCorte($calificacionesHija, $hijaAsig, $forceQualitative, $isSpecialStudent);
 
                     $notaHija = $hijaCortesData[$cid]['promedio'] ?? null;
@@ -414,6 +422,8 @@ class BoletinEscolarService
 
             if ($countHijas > 0) {
                 $avgHijas = $this->customRound($sumHijas / $countHijas);
+                // Pre-cache cuts to avoid N+1 here too? 
+                // For now, let's keep it simple as parent-child is less frequent.
                 $corteObj = \App\Models\ConfigNotSemestreParcial::with('semestre')->find($cid);
 
                 $notasPorCortePadre[$cid] = [
@@ -598,7 +608,10 @@ class BoletinEscolarService
             }
         }
 
+        $logoPath = config('institucion.' . ($isQualitative ? 'cualitativo' : 'cuantitativo') . '.logo');
         $data = [
+            'nombreInstitucion' => config('institucion.' . ($isQualitative ? 'cualitativo' : 'cuantitativo') . '.nombre', 'COLEGIO BALUM BOTAN'),
+            'logoPath' => $logoPath,
             'grupo' => $grupo,
             'consolidadoData' => $consolidadoData,
             'asignaturasConAreas' => $asignaturasConAreas,

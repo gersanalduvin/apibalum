@@ -3,10 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Boletín Escolar - {{ $grupo->grado->nombre }} {{ $grupo->seccion->nombre }}</title>
-    <style>
+    <title>Boletín Escolar - {{ $grupo->grado->nombre }} {{ $grupo->seccion->nombre }}</title>    <style>
         @page {
-            margin: 1cm;
+            margin: 0.5cm;
         }
 
         body,
@@ -25,182 +24,142 @@
 
         body {
             font-size: 11pt !important;
-            line-height: 1.2;
+            line-height: 1.1;
             color: #000;
+        }
+
+        .border-outer {
+            border: 2pt solid #006400; /* Dark Green border */
+            padding: 3px;
+            width: 100%;
+            height: 262mm; /* Reduced to fit Letter page safely */
+            box-sizing: border-box;
+            background-color: #fff;
+            margin: 0 auto;
+        }
+
+        .page-wrapper {
+            border: 1.5pt solid #0000ff; /* Blue border */
+            padding: 8px;
+            width: 100%;
+            height: 100%; /* Fill the outer container */
+            position: relative;
+            box-sizing: border-box;
+            background-color: #fff;
+            overflow: hidden;
         }
 
         .page-break {
             page-break-after: always;
         }
 
-        .portada {
-            text-align: center;
-            padding: 20px;
-        }
-
-        .portada h1 {
-            font-size: 14px;
-            margin: 5px 0;
-        }
-
-        .portada h2 {
-            font-size: 12px;
-            margin: 5px 0;
-        }
-
-        .portada .logo {
-            margin: 20px 0;
-        }
-
-        .estudiante-info {
-            margin: 30px 0 50px 50px;
-            text-align: left;
-
-        }
-
-        .estudiante-info p {
-            margin: 5px 0;
-            font-size: 11px;
-        }
-
-        .padre-mio {
-            margin: 30px 20px;
-            text-align: center;
-            font-size: 12px;
-            line-height: 1.4;
-        }
-
-        .padre-mio h3 {
-            font-size: 11px;
-            margin-bottom: 10px;
-        }
-
-        .deberes {
-            margin: 20px;
-            text-align: left !important;
-            font-size: 10px;
-
-        }
-
-        .deberes h4 {
-            font-size: 12px;
-            margin-bottom: 5px;
-        }
-
-        table {
+        .main-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 5px;
         }
 
-        th,
-        td {
+        .main-table th,
+        .main-table td {
             border: 1px solid #000;
-            padding: 3px 2px;
+            padding: 4px 1px;
             text-align: center;
-            font-size: 9px;
+            font-size: 7.5pt;
+            vertical-align: middle;
         }
 
-        th {
-            background-color: #f0f0f0;
+        .main-table th {
+            background-color: #f8f9fa;
             font-weight: bold;
         }
 
         .area-row {
             background-color: #e8e8e8;
             font-weight: bold;
-            text-align: center;
-            font-size: 8px;
+            text-align: left;
+            font-size: 7.5pt;
         }
 
         .asignatura-row td:first-child {
             text-align: left;
             padding-left: 5px;
         }
+
+        .footer-signatures {
+            position: absolute;
+            bottom: 60px;
+            left: 20px;
+            right: 20px;
+            width: 95%;
+        }
+
+        .signature-line {
+            width: 40%;
+            border-top: 1px solid #000;
+            text-align: center;
+            padding-top: 5px;
+            font-size: 10pt;
+        }
     </style>
 </head>
 
 <body>
     @foreach($estudiantes as $index => $estudianteData)
-    {{-- Calificaciones --}}
-    @include('pdf.partials.boletin-calificaciones', [
-    'estudiante' => $estudianteData['estudiante'],
-    'calificaciones' => $estudianteData['calificaciones'],
-    'grupo' => $grupo,
-    'corte_id_filtro' => $corte_id_filtro ?? null,
-    'corte_orden_filtro' => $corte_orden_filtro ?? null
-    ])
+    {{-- PAGE 1: FRONT (GRADES) --}}
+    <div class="border-outer">
+        <div class="page-wrapper">
+        {{-- Calificaciones --}}
+        @include('pdf.partials.boletin-calificaciones', [
+        'estudiante' => $estudianteData['estudiante'],
+        'calificaciones' => $estudianteData['calificaciones'],
+        'grupo' => $grupo,
+        'corte_id_filtro' => $corte_id_filtro ?? null,
+        'corte_orden_filtro' => $corte_orden_filtro ?? null
+        ])
 
-    <div class="footer-section" style="margin-top: 40px; font-size: 10px; page-break-inside: avoid;">
-        <div style="width: 250px; border-top: 1px solid #000; margin-bottom: 5px;"></div>
-        <div>Profesora: {{ $grupo->docenteGuia->primer_nombre ?? '' }} {{ $grupo->docenteGuia->primer_apellido ?? '' }}</div>
+        {{-- Observations Section --}}
+        <div style="margin-top: 20px; padding: 0 10px;">
+            <div style="font-weight: bold; font-size: 10pt; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 5px; display: inline-block;">OBSERVACIÓN DEL CORTE</div>
+            <div style="font-size: 10pt; min-height: 35px; padding: 5px; border: 1px dashed #ccc; margin-top: 5px;">
+                {{ $estudianteData['observacion'] ?? 'Esfuérzate cada día más que tú lo lograrás.' }}
+            </div>
+        </div>
 
-        <table style="width: 100%; border: none; margin-top: 15px;">
-            <tr style="border: none;">
-                <!-- Escala de Calificación -->
-                <td style="width: 45%; vertical-align: top; border: none; padding: 0;">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr>
-                                <th colspan="2">Escala de Calificación</th>
-                            </tr>
-                            <tr>
-                                <th colspan="2">Nivel de Competencias Alcanzadas</th>
-                            </tr>
-                            <tr>
-                                <th>Cualitativo</th>
-                                <th>Cuantitativo</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td style="text-align: left;">Aprendizaje Avanzado (AA)</td>
-                                <td>90 - 100</td>
-                            </tr>
-                            <tr>
-                                <td style="text-align: left;">Aprendizaje Satisfactorio (AS)</td>
-                                <td>76 - 89</td>
-                            </tr>
-                            <tr>
-                                <td style="text-align: left;">Aprendizaje Fundamental (AF)</td>
-                                <td>60 - 75</td>
-                            </tr>
-                            <tr>
-                                <td style="text-align: left;">Aprendizaje Inicial (AI)</td>
-                                <td>menos de 59</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div style="font-weight: bold; margin-top: 5px; text-align: left;">Nota mínima para aprobar 60.</div>
-                </td>
+        {{-- Signatures Section --}}
+        <div class="footer-signatures">
+            <table style="width: 100%; border: none;">
+                <tr style="border: none;">
+                    <td style="border: none; width: 45%; vertical-align: top;">
+                        <div style="border-top: 1px solid #000; margin-top: 15px; padding-top: 5px; text-align: center;">
+                            <strong>FIRMA DEL DOCENTE</strong>
+                        </div>
+                    </td>
+                    <td style="border: none; width: 10%;"></td>
+                    <td style="border: none; width: 45%; vertical-align: top;">
+                        <div style="border-top: 1px solid #000; margin-top: 15px; padding-top: 5px; text-align: center;">
+                            <strong>{{ config('institucion.cuantitativo.director') }}</strong><br>
+                            Directora
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        </div>
+    </div>
 
-                <!-- Spacer -->
-                <td style="width: 5%; border: none;"></td>
+    <div class="page-break"></div>
 
-                <!-- Observaciones Lines -->
-                <td style="width: 50%; vertical-align: top; border: none; padding: 0;">
-                    <div style="font-weight: bold; margin-bottom: 5px; text-align: left;">Observaciones:</div>
-                    @php
-                    // Si hay observaciones guardadas, lo mostramos en la primera línea.
-                    $obsText = $estudianteData['observacion'] ?? '';
-                    @endphp
-                    <div style="border-bottom: 1px solid #000; height: 16px; margin-bottom: 8px; text-align: left;">
-                        <span style="font-size: 10px; padding-left: 2px;">{{ $obsText }}</span>
-                    </div>
-                    <div style="border-bottom: 1px solid #000; height: 16px; margin-bottom: 8px;"></div>
-                    <div style="border-bottom: 1px solid #000; height: 16px; margin-bottom: 8px;"></div>
-                    <div style="border-bottom: 1px solid #000; height: 16px; margin-bottom: 8px;"></div>
-                    <div style="border-bottom: 1px solid #000; height: 16px; margin-bottom: 8px;"></div>
-                </td>
-            </tr>
-        </table>
+    {{-- PAGE 2: BACK (HISTORY) --}}
+    <div class="border-outer">
+        <div class="page-wrapper">
+            @include('pdf.partials.boletin-trasera')
+        </div>
     </div>
 
     @if($index < count($estudiantes) - 1)
-        <div class="page-break">
-        </div>
+        <div class="page-break"></div>
         @endif
-        @endforeach
+    @endforeach
 </body>
 
 </html>

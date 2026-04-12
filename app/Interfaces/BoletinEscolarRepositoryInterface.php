@@ -46,6 +46,15 @@ interface BoletinEscolarRepositoryInterface
     public function getCalificacionesByEstudiante(int $estudianteId, int $asignaturaGradoId);
 
     /**
+     * Get all grades for a group and a set of subjects (Optimized Batch Fetching)
+     *
+     * @param int $grupoId
+     * @param int $periodoLectivoId
+     * @return \Illuminate\Support\Collection
+     */
+    public function getCalificacionesByGrupo(int $grupoId, int $periodoLectivoId);
+
+    /**
      * Get semesters with their evaluation cuts for a specific academic period
      *
      * @param int $periodoLectivoId

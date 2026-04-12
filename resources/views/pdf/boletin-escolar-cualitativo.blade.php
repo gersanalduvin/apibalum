@@ -307,14 +307,11 @@
                 {{-- RIGHT PANEL: Front Cover --}}
                 <div class="panel">
                     <div class="cover-content">
-                        <div class="school-name">Centro Escolar "Mis Primeros Pasos"</div>
-                        <div class="school-info">Dir. Banpro Sutiaba 75 varas al oeste</div>
-                        <div class="school-info">Teléfono 2311-6846</div>
-
-                        <div class="motto">"Fe – amor y sabiduría, educamos para la vida"</div>
-                        <div class="logo-container">
-                            @if(file_exists(public_path('logopp.png')))
-                            <img src="{{ public_path('logopp.png') }}" alt="Logo" style="width: 150px;">
+                        <div class="school-name">{{ config('institucion.cualitativo.nombre') }}</div>
+                         <div class="logo-container">
+                            @php $logoPath = public_path(config('institucion.cualitativo.logo')); @endphp
+                            @if(file_exists($logoPath))
+                            <img src="{{ $logoPath }}" alt="Logo" style="width: 150px;">
                             @else
                             <div style="width: 180px; height: 180px; border: 1px dashed #ccc; margin: 0 auto; line-height: 180px;">LOGO</div>
                             @endif
