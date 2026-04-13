@@ -44,6 +44,7 @@ class ListasGrupoRepository implements ListasGrupoRepositoryInterface
         $grupos = $gruposRaw->map(function ($g) {
             return [
                 'id' => $g->id,
+                'periodo_lectivo_id' => $g->periodo_lectivo_id,
                 'nombre' => ($g->grado ?? '') . '-' . ($g->seccion ?? ''),
             ];
         });

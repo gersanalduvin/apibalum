@@ -147,7 +147,8 @@ class UsersGrupoRepository
                 'users_grupos.periodo_lectivo_id',
                 'users_grupos.grupo_id',
                 'users_grupos.id as users_grupo_id',
-                \Illuminate\Support\Facades\DB::raw("CONCAT(COALESCE(config_grado.nombre,''),'+',COALESCE(config_seccion.nombre,'')) as grupo_nombre")
+                \Illuminate\Support\Facades\DB::raw("CONCAT(COALESCE(config_grado.nombre,''),'+',COALESCE(config_seccion.nombre,'')) as grupo_nombre"),
+                \Illuminate\Support\Facades\DB::raw("(SELECT COALESCE(SUM(ua.saldo_actual), 0) FROM users_aranceles ua WHERE ua.user_id = users.id AND ua.deleted_at IS NULL AND ua.estado = 'pendiente') as total_pendiente")
             );
 
         $query->whereNull('users.deleted_at');

@@ -184,6 +184,9 @@ class PermissionService
                 'historial_pdf' => 'recibos.historial_pdf',
                 'buscar' => 'buscar_recibo', // Renamed from buscar_legacy for clarity
             ],
+            'cobros_grupo' => [
+                'index' => 'cobros_grupo.index',
+            ],
         ],
         // Gestion category removed
         'reportes' => [
