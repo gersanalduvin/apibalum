@@ -121,7 +121,7 @@
         <div style="margin-top: 20px; padding: 0 10px;">
             <div style="font-weight: bold; font-size: 10pt; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 5px; display: inline-block;">OBSERVACIÓN DEL CORTE</div>
             <div style="font-size: 10pt; min-height: 35px; padding: 5px; border: 1px dashed #ccc; margin-top: 5px;">
-                {{ $estudianteData['observacion'] ?? 'Esfuérzate cada día más que tú lo lograrás.' }}
+                {{ $estudianteData['observacion'] ?? '' }}
             </div>
         </div>
 

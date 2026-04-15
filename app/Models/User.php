@@ -819,7 +819,10 @@ class User extends Authenticatable
                 // Permiso general de operaciones docentes
                 'operaciones.docentes',
                 'observaciones.ver',
-                'observaciones.editar'
+                'observaciones.editar',
+                // Boletín Escolar y Consolidado de Notas (solo su grupo guía)
+                'generar.boletin',
+                'generar.consolidado_notas',
             ])
         ) {
             return true;

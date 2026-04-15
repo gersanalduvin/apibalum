@@ -96,7 +96,7 @@ class BoletinEscolarService
 
         // Fetch ALL grades for the group at once to avoid N+1 queries
         $allGradesRaw = $this->repository->getCalificacionesByGrupo($grupoId, $periodoLectivoId);
-        
+
         // Group grades by [student_id][subject_id] for O(1) in-memory access
         $groupedGrades = [];
         foreach ($allGradesRaw as $g) {
@@ -145,7 +145,9 @@ class BoletinEscolarService
                         'area_id' => $areaData['area_id'],
                         'area_nombre' => $areaData['area_nombre'],
                         'notas_por_corte' => $notasPorCorte,
-                        'promedios' => $promedios
+                        'promedios' => $promedios,
+                        'incluir_en_promedio' => (bool)($asignatura->incluir_en_promedio ?? false),
+                        'incluir_en_boletin' => (bool)($asignatura->incluir_en_boletin ?? true),
                     ];
                 }
             }
@@ -153,7 +155,7 @@ class BoletinEscolarService
             // Fetch Observations from map
             $studentObs = $allObservations->get($estudiante->user_id, new \Illuminate\Database\Eloquent\Collection());
             $observacion = '';
-            
+
             if ($corteId) {
                 $obsModel = $studentObs->where('parcial_id', $corteId)->first();
                 $observacion = $obsModel ? $obsModel->observacion : '';
@@ -210,7 +212,8 @@ class BoletinEscolarService
             $view = 'pdf.boletin-escolar-cualitativo';
             $orientation = 'Landscape';
         }
-
+        $zoom = (($grupo->grado->formato ?? 'cuantitativo') === 'cualitativo') ? 1.25 : 1.0;
+        
         // Generate PDF
         $pdf = Pdf::loadView($view, $data);
         $pdf->setOption('page-size', 'Letter')
@@ -221,7 +224,7 @@ class BoletinEscolarService
             ->setOption('margin-right', '5mm')
             ->setOption('footer-font-size', 8)
             ->setOption('disable-smart-shrinking', true)
-            ->setOption('zoom', 1.0)
+            ->setOption('zoom', $zoom)
             ->setOption('dpi', 72);
 
         return $pdf;
@@ -422,7 +425,7 @@ class BoletinEscolarService
 
             if ($countHijas > 0) {
                 $avgHijas = $this->customRound($sumHijas / $countHijas);
-                // Pre-cache cuts to avoid N+1 here too? 
+                // Pre-cache cuts to avoid N+1 here too?
                 // For now, let's keep it simple as parent-child is less frequent.
                 $corteObj = \App\Models\ConfigNotSemestreParcial::with('semestre')->find($cid);
 
@@ -579,13 +582,13 @@ class BoletinEscolarService
 
                 $studentGrades[$asignatura->id] = $notaResult;
 
-                if ($notaResult !== null && $asignatura->incluir_en_promedio && is_numeric($notaResult)) {
+                if ($notaResult !== null && ($asignatura->incluir_en_boletin ?? true) && ($asignatura->incluir_en_promedio ?? false) && is_numeric($notaResult)) {
                     $sumGrades += (float)$notaResult;
                     $countMaterias++;
                 }
             }
 
-            $nfRounded = ($countMaterias > 0) ? $this->customRound($sumGrades / $countMaterias) : null;
+            $nfRounded = ($countMaterias > 0) ? round($sumGrades / $countMaterias, 2) : null;
             if (($grupo->grado->formato ?? 'cuantitativo') === 'cualitativo') {
                 $nfRounded = null; // Don't show numeric average for qualitative grades
             }
@@ -759,11 +762,11 @@ class BoletinEscolarService
     }
 
     /**
-     * Custom rounding (decimal >= 0.6 rounds up)
+     * Standard rounding: >= 0.5 rounds up
      */
     private function customRound($value)
     {
         if ($value === null) return null;
-        return (int)floor($value + 0.4);
+        return (int)round($value);
     }
 }

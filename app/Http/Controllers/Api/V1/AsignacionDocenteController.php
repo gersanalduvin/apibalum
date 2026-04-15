@@ -252,4 +252,50 @@ class AsignacionDocenteController extends Controller
             return $this->errorResponse('Error al generar PDF: ' . $e->getMessage(), [], 500);
         }
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // PORTAL ADMINISTRATIVO DE NOTAS
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Listar TODAS las asignaciones del sistema con filtros opcionales.
+     * Solo accesible para usuarios con permiso gestionar.notas.administrativo.
+     *
+     * GET /bk/v1/admin-portal/asignaciones
+     * Query params: periodo_lectivo_id, grupo_id, docente_id, asignatura_grado_id
+     */
+    public function adminIndex(Request $request): JsonResponse
+    {
+        try {
+            $filters = $request->only([
+                'periodo_lectivo_id',
+                'grupo_id',
+                'docente_id',
+                'asignatura_grado_id',
+            ]);
+
+            $asignaciones = $this->service->getAllAssignments($filters);
+            return $this->successResponse($asignaciones, 'Asignaciones obtenidas exitosamente');
+        } catch (Exception $e) {
+            return $this->errorResponse($e->getMessage(), [], 500);
+        }
+    }
+
+    /**
+     * Obtener opciones de filtro para el panel administrativo.
+     * Devuelve periodos lectivos, grupos y docentes disponibles.
+     *
+     * GET /bk/v1/admin-portal/filtros
+     * Query params: periodo_lectivo_id (opcional, para filtrar grupos)
+     */
+    public function adminFiltros(Request $request): JsonResponse
+    {
+        try {
+            $periodoId = $request->get('periodo_lectivo_id');
+            $filtros = $this->service->getAdminFiltros($periodoId);
+            return $this->successResponse($filtros, 'Filtros obtenidos exitosamente');
+        } catch (Exception $e) {
+            return $this->errorResponse($e->getMessage(), [], 500);
+        }
+    }
 }

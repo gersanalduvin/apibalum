@@ -38,9 +38,13 @@ class CheckPermissions
         }
 
         // Verificar si el usuario tiene ALGUNO de los permisos requeridos
-        foreach ($permissions as $permission) {
-            if ($user->hasPermission($permission)) {
-                return $next($request);
+        // Soporta OR con | (ej: permission:generar.boletin|generar.consolidado_notas)
+        foreach ($permissions as $permissionGroup) {
+            $orPermissions = explode('|', $permissionGroup);
+            foreach ($orPermissions as $permission) {
+                if ($user->hasPermission(trim($permission))) {
+                    return $next($request);
+                }
             }
         }
 

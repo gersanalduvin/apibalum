@@ -111,3 +111,19 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 });
 
 require __DIR__ . '/auth.php';
+
+// RUTA DE DEBUG TEMPORAL - ELIMINAR DESPUÉS DE PROBAR
+Route::get('/v1/debug-filtros', function () {
+    try {
+        $service = app(\App\Services\AsignaturaGradoDocenteService::class);
+        $filtros = $service->getAdminFiltros();
+        return response()->json([
+            'periodos_count' => count($filtros['periodos']),
+            'grupos_count'   => count($filtros['grupos']),
+            'docentes_count' => count($filtros['docentes']),
+            'periodos_sample' => array_slice($filtros['periodos']->toArray(), 0, 2),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
+    }
+})->middleware('auth:sanctum');

@@ -206,7 +206,7 @@
                 @endforeach
                 <td class="nf-col">
                     @if($data['nf'] !== null)
-                    {{ number_format($data['nf'], 0) }}
+                    {{ number_format($data['nf'], 2) }}
                     @else
                     -
                     @endif

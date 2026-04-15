@@ -112,6 +112,7 @@ Route::prefix('recursos')->middleware('check.permissions:operaciones.docentes')-
     Route::delete('/archivo/{id}', [RecursoController::class, 'destroyFile']);
 });
 
+
 Route::prefix('evidencias-diarias')->middleware('check.permissions:operaciones.docentes')->group(function () {
     Route::get('/asignacion/{assignmentId}/corte/{corteId}', [DailyEvidenceController::class, 'index']);
     Route::post('/', [DailyEvidenceController::class, 'store']);
@@ -121,3 +122,19 @@ Route::prefix('evidencias-diarias')->middleware('check.permissions:operaciones.d
     Route::get('/{evidenceId}/calificaciones', [DailyEvidenceController::class, 'getGrades']);
     Route::post('/{evidenceId}/calificaciones', [DailyEvidenceController::class, 'storeGrades']);
 });
+
+// ──────────────────────────────────────────────────────────────────────────────
+// PORTAL ADMINISTRATIVO DE NOTAS
+// Permite a administrativos (con permiso gestionar.notas.administrativo) ver
+// y gestionar notas de cualquier asignación del sistema.
+// ──────────────────────────────────────────────────────────────────────────────
+Route::prefix('admin-portal')
+    ->middleware('check.permissions:gestionar.notas.administrativo')
+    ->group(function () {
+        // Lista todas las asignaciones del sistema con filtros opcionales
+        Route::get('/asignaciones', [AsignacionDocenteController::class, 'adminIndex']);
+
+        // Filtros disponibles para el panel (grupos, docentes, periodos)
+        Route::get('/filtros', [AsignacionDocenteController::class, 'adminFiltros']);
+    });
+

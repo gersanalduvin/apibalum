@@ -42,7 +42,7 @@
     $showFinal = ($orden >= 4 || $corte_orden_filtro === null);
 
     // Calculate colspans
-    $s1_colspan = 2; 
+    $s1_colspan = 2;
     if ($showC2) $s1_colspan += 2;
     if ($showIS) $s1_colspan += 2;
 
@@ -58,16 +58,16 @@
     $isFilterActive = !is_null($corte_id_filtro);
 
     $formatNota = function($val) use ($isFilterActive) {
-        if ($val === null || $val === '' || $val === 0 || $val === '0') {
-            return $isFilterActive ? '0' : ' ';
-        }
-        return $val;
+    if ($val === null || $val === '' || $val === 0 || $val === '0') {
+    return $isFilterActive ? '0' : ' ';
+    }
+    return $val;
     };
     $formatCual = function($val) use ($isFilterActive) {
-        if ($val === null || $val === '-' || $val === '' || $val === ' ') {
-            return $isFilterActive ? '-' : ' ';
-        }
-        return $val;
+    if ($val === null || $val === '-' || $val === '' || $val === ' ') {
+    return $isFilterActive ? '-' : ' ';
+    }
+    return $val;
     };
 
     $currentArea = null;
@@ -94,7 +94,7 @@
                 <th colspan="2">I CORTE</th>
                 @if($showC2) <th colspan="2">II CORTE</th> @endif
                 @if($showIS) <th colspan="2" style="background-color: #f0f0f0;">IS</th> @endif
-                
+
                 @if($showC3) <th colspan="2">III CORTE</th> @endif
                 @if($showC4) <th colspan="2">IV CORTE</th> @endif
                 @if($showIIS) <th colspan="2" style="background-color: #f0f0f0;">IIS</th> @endif
@@ -139,6 +139,11 @@
             </tr>
             @endif
 
+            @php
+                $inclProm = ($calificacion['incluir_en_promedio'] ?? false);
+                $inclBol  = ($calificacion['incluir_en_boletin'] ?? true);
+            @endphp
+
             {{-- Subject row --}}
             <tr class="asignatura-row">
                 <td style="text-align: left; padding-left: 5px; font-size: 7.5pt;">{{ $calificacion['asignatura_nombre'] }}</td>
@@ -148,7 +153,7 @@
                 $corte1 = collect($calificacion['notas_por_corte'])->firstWhere('corte_orden', 1);
                 $c1 = $corte1['promedio'] ?? null;
                 $c1Cual = $corte1['promedio_cualitativo'] ?? '-';
-                if ($c1 !== null) { $totalPorCorte[1][] = (float)$c1; }
+                if ($c1 !== null && $inclProm) { $totalPorCorte[1][] = (float)$c1; }
                 @endphp
                 <td>{{ $formatNota($c1) }}</td>
                 <td>{{ $formatCual($c1Cual) }}</td>
@@ -159,7 +164,7 @@
                 $corte2 = collect($calificacion['notas_por_corte'])->firstWhere('corte_orden', 2);
                 $c2 = $corte2['promedio'] ?? null;
                 $c2Cual = $corte2['promedio_cualitativo'] ?? '-';
-                if ($c2 !== null) { $totalPorCorte[2][] = (float)$c2; }
+                if ($c2 !== null && $inclProm) { $totalPorCorte[2][] = (float)$c2; }
                 @endphp
                 <td>{{ $formatNota($c2) }}</td>
                 <td>{{ $formatCual($c2Cual) }}</td>
@@ -181,7 +186,7 @@
                 elseif($isProm >= 60) $isCual = 'AF';
                 elseif($isProm !== null) $isCual = 'AI';
 
-                if ($isProm !== null) { $totalS1[] = (float)$isProm; }
+                if ($isProm !== null && $inclProm) { $totalS1[] = (float)$isProm; }
                 @endphp
                 <td style="background-color: #f0f0f0; font-weight: bold;">{{ $formatNota($isProm) }}</td>
                 <td style="background-color: #f0f0f0; font-weight: bold;">{{ $formatCual($isCual) }}</td>
@@ -193,7 +198,7 @@
                 $corte3 = collect($calificacion['notas_por_corte'])->firstWhere('corte_orden', 3);
                 $c3 = $corte3['promedio'] ?? null;
                 $c3Cual = $corte3['promedio_cualitativo'] ?? '-';
-                if ($c3 !== null) { $totalPorCorte[3][] = (float)$c3; }
+                if ($c3 !== null && $inclProm) { $totalPorCorte[3][] = (float)$c3; }
                 @endphp
                 <td>{{ $formatNota($c3) }}</td>
                 <td>{{ $formatCual($c3Cual) }}</td>
@@ -207,7 +212,7 @@
                 $corte4 = collect($calificacion['notas_por_corte'])->firstWhere('corte_orden', 4);
                 $c4 = $corte4['promedio'] ?? null;
                 $c4Cual = $corte4['promedio_cualitativo'] ?? '-';
-                if ($c4 !== null) { $totalPorCorte[4][] = (float)$c4; }
+                if ($c4 !== null && $inclProm) { $totalPorCorte[4][] = (float)$c4; }
                 @endphp
                 <td>{{ $formatNota($c4) }}</td>
                 <td>{{ $formatCual($c4Cual) }}</td>
@@ -229,7 +234,7 @@
                 elseif($iisProm >= 60) $iisCual = 'AF';
                 elseif($iisProm !== null) $iisCual = 'AI';
 
-                if ($iisProm !== null) { $totalS2[] = (float)$iisProm; }
+                if ($iisProm !== null && $inclProm) { $totalS2[] = (float)$iisProm; }
                 @endphp
                 <td style="background-color: #f0f0f0; font-weight: bold;">{{ $formatNota($iisProm) }}</td>
                 <td style="background-color: #f0f0f0; font-weight: bold;">{{ $formatCual($iisCual) }}</td>
@@ -240,7 +245,7 @@
                 @php
                 $notaFinal = $calificacion['promedios']['nota_final'] ?? null;
                 $finalCual = $calificacion['promedios']['nota_final_cualitativo'] ?? '-';
-                if ($notaFinal !== null) { $totalFinales[] = (float)$notaFinal; }
+                if ($notaFinal !== null && $inclProm) { $totalFinales[] = (float)$notaFinal; }
                 @endphp
                 <td style="font-weight: bold;">{{ $formatNota($notaFinal) }}</td>
                 <td style="font-weight: bold;">{{ $formatCual($finalCual) }}</td>
@@ -251,24 +256,24 @@
             {{-- PROMEDIO ROW --}}
             @php
             $promedioLabel = function($arr) {
-                if (count($arr) === 0) return null;
-                $val = array_sum($arr) / count($arr);
-                return number_format($val, 2, '.', '');
+            if (count($arr) === 0) return null;
+            $val = array_sum($arr) / count($arr);
+            return number_format($val, 2, '.', '');
             };
             $promCualitativo = function($arr) {
-                if (count($arr) === 0) return null;
-                $avg = array_sum($arr) / count($arr);
-                if ($avg >= 90) return 'AA';
-                if ($avg >= 76) return 'AS';
-                if ($avg >= 60) return 'AF';
-                return 'AI';
+            if (count($arr) === 0) return null;
+            $avg = array_sum($arr) / count($arr);
+            if ($avg >= 90) return 'AA';
+            if ($avg >= 76) return 'AS';
+            if ($avg >= 60) return 'AF';
+            return 'AI';
             };
             @endphp
             <tr style="font-weight: bold; background-color: #f5f5f5;">
                 <td style="text-align: center; font-weight: bold; vertical-align: middle;">PROMEDIO</td>
                 <td style="vertical-align: middle;">{{ $formatNota($promedioLabel($totalPorCorte[1])) }}</td>
                 <td style="vertical-align: middle;">{{ $formatCual($promCualitativo($totalPorCorte[1])) }}</td>
-                
+
                 @if($showC2)
                 <td style="vertical-align: middle;">{{ $formatNota($promedioLabel($totalPorCorte[2])) }}</td>
                 <td style="vertical-align: middle;">{{ $formatCual($promCualitativo($totalPorCorte[2])) }}</td>

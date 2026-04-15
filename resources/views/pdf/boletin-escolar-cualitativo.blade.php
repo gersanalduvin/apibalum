@@ -24,7 +24,8 @@
         /* Landscape Split (Page 1) */
         .landscape-page {
             width: 100%;
-            height: 160mm; /* Reduced to strictly fit inside the scaled PDF boundaries */
+            height: 160mm;
+            /* Reduced to strictly fit inside the scaled PDF boundaries */
             position: relative;
             overflow: hidden;
             page-break-after: always;
@@ -40,12 +41,12 @@
         .panel {
             display: table-cell;
             vertical-align: top;
-            padding: 10px 20px;
+            padding: 10px 15px;
             width: 50%;
         }
 
         .panel-left {
-            /* border-right: 1px dashed #ccc; */
+            border-right: 1px solid #ddd;
         }
 
         .indicators-page {
@@ -261,34 +262,30 @@
                 {{-- LEFT PANEL: Back Cover (Dynamic Radio Evidences) --}}
                 <div class="panel panel-left">
                     <div class="parent-eval-section">
-                        @foreach($coverEvidences as $grade)
-                        <div class="parent-eval-item">
-                            <ul>
-                                <li>{{ $grade['evidence_name'] }}</li>
-                            </ul>
-                            <div class="checkbox-row">
+                        @if(!empty($coverEvidences))
+                        <div style="font-size: 9pt; font-weight: bold; text-align: center; margin-bottom: 6px; padding-bottom: 3px; letter-spacing: 1px;">HÁBITOS DE TRABAJO ESCOLAR</div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 8pt; margin-bottom: 5px;">
+                            <thead>
+                                <tr style="background-color: #f0f0f0;">
+                                    <th style="border: 1px solid #000; padding: 3px 6px; text-align: left; font-weight: bold; width: 70%;">Evidencia</th>
+                                    <th style="border: 1px solid #000; padding: 3px 6px; text-align: center; font-weight: bold; width: 30%;">Evaluación</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($coverEvidences as $grade)
                                 @php
-                                $config = $grade['indicador_config'];
-                                $checks = $grade['indicadores_check'] ?? [];
-                                $criteria = $config['criterio'] ?? (is_array($config['criterios']) ? $config['criterios'] : []);
-                                if(!is_array($criteria)) $criteria = [$criteria];
-                                $answer = $checks['respuesta'] ?? '';
+                                    $checks = $grade['indicadores_check'] ?? [];
+                                    $answer = $checks['respuesta'] ?? '';
                                 @endphp
-
-                                @foreach($criteria as $crit)
-                                {{ $crit }}
-                                <span class="checkbox-box">
-                                    @if($answer == $crit)
-                                    <span class="check-mark" style="font-size: 8pt; margin-top: -3px; display: block;">&#10004;</span>
-                                    @endif
-                                </span>
+                                <tr>
+                                    <td style="border: 1px solid #000; padding: 3px 6px; text-align: left;">{{ $grade['evidence_name'] }}</td>
+                                    <td style="border: 1px solid #000; padding: 3px 6px; text-align: center; font-weight: bold;">{{ $answer ?: '-' }}</td>
+                                </tr>
                                 @endforeach
-                            </div>
-                        </div>
-                        @endforeach
-
-                        @if(empty($coverEvidences))
-                        <div style="font-style: italic; color: #999; margin-bottom: 20px;">No se encontraron evaluaciones conductuales dinamicas.</div>
+                            </tbody>
+                        </table>
+                        @else
+                        <div style="font-style: italic; color: #999; margin-bottom: 20px;">No se encontraron evaluaciones conductuales dinámicas.</div>
                         @endif
 
                         <div class="observation-area">
@@ -298,8 +295,26 @@
                             </div>
                         </div>
 
-                        <div style="margin-top: 15px; text-align: left; font-size: 8.5pt;">
-                            Firma del Padre y/o Responsable
+                        <div style="margin-top: 40px; font-size: 8.5pt;">
+                            {{-- Firma Directora --}}
+                            <div style="text-align: center; margin-bottom: 35px;">
+                                <div style="border-top: 1px solid #000; width: 80%; margin: 0 auto; padding-top: 4px;">
+                                    <strong>Lic. Yamilett Cuadra López</strong><br>
+                                    Directora
+                                </div>
+                            </div>
+                            {{-- Firma Docente --}}
+                            <div style="text-align: center; margin-top: 10px;">
+                                <div style="border-top: 1px solid #000; width: 80%; margin: 0 auto; padding-top: 4px;">
+                                    FIRMA DEL DOCENTE
+                                </div>
+                            </div>
+                            {{-- Escala de calificación --}}
+                            <div style="margin-top: 15px; border: 1px solid #000; padding: 5px 8px; font-size: 7.5pt; line-height: 1.6;">
+                                <strong>Escala de Calificación:</strong><br>
+                                <strong>AA</strong> = Aprendizaje Avanzado<br>
+                                <strong>AP</strong> = Aprendizaje en Proceso
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -308,7 +323,7 @@
                 <div class="panel">
                     <div class="cover-content">
                         <div class="school-name">{{ config('institucion.cualitativo.nombre') }}</div>
-                         <div class="logo-container">
+                        <div class="logo-container">
                             @php $logoPath = public_path(config('institucion.cualitativo.logo')); @endphp
                             @if(file_exists($logoPath))
                             <img src="{{ $logoPath }}" alt="Logo" style="width: 150px;">
@@ -338,8 +353,7 @@
 
                         <table class="student-data-table">
                             <tr>
-                                <td style="width: 70%;">{{ $grupo->grado->nombre }} {{ $grupo->seccion->nombre }} - {{ $grupo->turno->nombre ?? '' }}</td>
-                                <td>Fecha: <span class="line-under" style="display: inline-block; width: 80px; text-align: center;">{{ date('d-m-Y') }}</span></td>
+                                <td colspan="2" style="text-align: center;">{{ $grupo->grado->nombre }} {{ $grupo->seccion->nombre }} - {{ $grupo->turno->nombre ?? '' }}</td>
                             </tr>
                             <tr>
                                 <td colspan="2" style="padding-top: 15px;"><strong style="font-weight: bold;">Nombre del Niño(a):</strong> <span class="line-under" style="display: inline-block; width: 400px; text-align: left; padding-left: 10px;">{{ $estudianteData['estudiante']->nombre_completo }}</span></td>
@@ -348,17 +362,18 @@
                                 <td colspan="2" style="padding-top: 15px;"><strong style="font-weight: bold;">Profesora:</strong> <span class="line-under" style="display: inline-block; width: 400px; text-align: left; padding-left: 10px;">{{ $grupo->docenteGuia->nombre_completo ?? 'No asignado' }}</span></td>
                             </tr>
                         </table>
+                        <div style="font-size: 8.5pt; font-weight: bold; font-style: italic; color: #000; margin-top: 65px; text-align: center; line-height: 1.4;">&ldquo;DISCIPLINANDO HOY A LOS HOMBRES Y MUJERES DEL MA&Ntilde;ANA&rdquo;</div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="indicators-page">
             {{-- PAGE 2: Indicators --}}
-            <div class="indicators-header" style="text-align: center; margin-bottom: 10px; padding-top: 5px; width: 50%; padding-right: 7.5px; box-sizing: border-box;">
+            <div class="indicators-header" style="text-align: center; margin-bottom: 10px; padding-top: 5px; width: 100%; box-sizing: border-box;">
                 <div style="font-weight: bold; font-size: 9pt;">Ámbitos de Aprendizaje:</div>
                 <div style="font-weight: bold; font-style: italic; font-size: 8.5pt;">Dimensiones: Comunicación y Lenguaje, Cognitiva, Física, Emocional y Social.</div>
             </div>
-            <div style="width: 100%; display: table; table-layout: fixed; border-spacing: 15px 0;">
+            <div style="width: 100%; display: table; table-layout: fixed; border-spacing: 20px 0;">
                 @php
                 // 1. Calculate weighted height for each evidence to balance columns
                 $weightedEvidences = [];
@@ -397,7 +412,7 @@
                     @endphp
 
                     @foreach($chunks as $chunkIndex=> $chunk)
-                    <div style="display: table-cell; vertical-align: top; width: 50%;">
+                    <div style="display: table-cell; vertical-align: top; width: 50%; padding: 0 5px;">
                         <table class="main-table" style="width: 100%;">
                             <thead>
                                 <tr>
@@ -425,17 +440,11 @@
                                         $evName = $grade['evidence_name'] ?? 'Evidencia';
                                         $evParts = explode('|', $evName);
                                         @endphp
-                                        {{ $evParts[0] }}
-                                        @foreach($criteria as $i => $crit)
-                                        @php
-                                        $isChecked = !empty($checks[$crit]) || !empty($checks[$i]) || !empty($checks[$i+1]);
-                                        @endphp
-                                        <span style="white-space: nowrap;">{{ $crit }} <span class="inline-checkbox">@if($isChecked)<span class="check-mark" style="font-size: 7pt; margin-top: -3px; display: block;">&#10004;</span>@endif</span></span>
-                                        @endforeach
+                                        {{ str_replace('*', '', $evParts[0]) }}
                                         {{ $evParts[1] ?? '' }}
                                     </td>
-                                    <td class="col-aa check-mark">@if($finalScale == 'AA') &#10004; @endif</td>
-                                    <td class="col-ap check-mark">@if($finalScale == 'AP') &#10004; @endif</td>
+                                    <td class="col-aa" style="text-align: center; font-weight: bold; font-size: 8pt;">@if($finalScale == 'AA') AA @endif</td>
+                                    <td class="col-ap" style="text-align: center; font-weight: bold; font-size: 8pt;">@if($finalScale == 'AP') AP @endif</td>
                                 </tr>
                                 @endforeach
                             </tbody>

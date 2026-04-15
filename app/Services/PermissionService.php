@@ -450,6 +450,11 @@ class PermissionService
                 'redactar' => 'redactar_mensaje',
             ],
         ],
+        'gestion_notas' => [
+            'portal_administrativo' => [
+                'acceso' => 'gestionar.notas.administrativo',
+            ],
+        ],
         'agenda' => [
             'eventos' => [
                 'ver' => 'agenda.eventos.ver',

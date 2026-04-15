@@ -188,4 +188,113 @@ class AsignaturaGradoDocenteService
     {
         return $this->repository->getFiltros($periodoLectivoId);
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // PORTAL ADMINISTRATIVO
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Obtener todas las asignaciones del sistema con filtros opcionales.
+     * No filtra por usuario autenticado – acceso administrativo completo.
+     */
+    public function getAllAssignments(array $filters = []): \Illuminate\Support\Collection
+    {
+        $query = DB::table('not_asignatura_grado_docente as agd')
+            ->join('config_grupos as g', 'agd.grupo_id', '=', 'g.id')
+            ->join('not_asignatura_grado as ag', 'agd.asignatura_grado_id', '=', 'ag.id')
+            ->join('not_materias as m', 'ag.materia_id', '=', 'm.id')
+            ->join('config_grado as cg', 'g.grado_id', '=', 'cg.id')
+            ->join('config_seccion as cs', 'g.seccion_id', '=', 'cs.id')
+            ->join('config_turnos as ct', 'g.turno_id', '=', 'ct.id')
+            ->join('users as u', 'agd.user_id', '=', 'u.id')
+            ->whereNull('agd.deleted_at')
+            ->whereNull('g.deleted_at')
+            ->whereNull('u.deleted_at');
+
+        // Filtros opcionales
+        if (!empty($filters['periodo_lectivo_id'])) {
+            $query->where('g.periodo_lectivo_id', $filters['periodo_lectivo_id']);
+        }
+        if (!empty($filters['grupo_id'])) {
+            $query->where('agd.grupo_id', $filters['grupo_id']);
+        }
+        if (!empty($filters['docente_id'])) {
+            $query->where('agd.user_id', $filters['docente_id']);
+        }
+        if (!empty($filters['asignatura_grado_id'])) {
+            $query->where('agd.asignatura_grado_id', $filters['asignatura_grado_id']);
+        }
+
+        return $query->select([
+            'agd.id',
+            'agd.id as id_asignacion',
+            'agd.user_id',
+            'agd.grupo_id',
+            'agd.asignatura_grado_id',
+            DB::raw("CONCAT(u.primer_nombre, ' ', u.primer_apellido) as docente_nombre"),
+            'm.nombre as materia_nombre',
+            'cg.nombre as grado_nombre',
+            'cs.nombre as seccion_nombre',
+            'ct.nombre as turno_nombre',
+            DB::raw("CONCAT(cg.nombre, ' - ', cs.nombre, ' - ', ct.nombre) as grupo_nombre"),
+            // Sub-select para conteo de estudiantes en el grupo
+            DB::raw('(SELECT COUNT(*) FROM users_grupos ug WHERE ug.grupo_id = g.id AND ug.deleted_at IS NULL) as estudiantes_count'),
+        ])->orderBy('cg.nombre')->orderBy('m.nombre')->get();
+    }
+
+    /**
+     * Obtener opciones de filtros para el panel administrativo de notas.
+     * Devuelve periodos, grupos y docentes disponibles.
+     */
+    public function getAdminFiltros(?int $periodoId = null): array
+    {
+        // Periodos lectivos (tabla correcta: conf_periodo_lectivos)
+        $periodos = DB::table('conf_periodo_lectivos')
+            ->whereNull('deleted_at')
+            ->orderByDesc('created_at')
+            ->select('id', 'nombre')
+            ->get();
+
+        // Grupos (filtrados por periodo si se indica)
+        $gruposQuery = DB::table('config_grupos as g')
+            ->join('config_grado as cg', 'g.grado_id', '=', 'cg.id')
+            ->join('config_seccion as cs', 'g.seccion_id', '=', 'cs.id')
+            ->join('config_turnos as ct', 'g.turno_id', '=', 'ct.id')
+            ->whereNull('g.deleted_at');
+
+        if ($periodoId) {
+            $gruposQuery->where('g.periodo_lectivo_id', $periodoId);
+        }
+
+        $grupos = $gruposQuery->select(
+            'g.id',
+            DB::raw("CONCAT(cg.nombre, ' - ', cs.nombre, ' - ', ct.nombre) as nombre"),
+            'g.periodo_lectivo_id'
+        )->orderBy('cg.orden')->orderBy('cs.orden')->orderBy('ct.nombre')->get();
+
+        // Docentes con asignaciones activas
+        $docentesQuery = DB::table('not_asignatura_grado_docente as agd')
+            ->join('users as u', 'agd.user_id', '=', 'u.id')
+            ->join('config_grupos as g', 'agd.grupo_id', '=', 'g.id')
+            ->whereNull('agd.deleted_at')
+            ->whereNull('u.deleted_at');
+
+        if ($periodoId) {
+            $docentesQuery->where('g.periodo_lectivo_id', $periodoId);
+        }
+
+        $docentes = $docentesQuery->select(
+            'u.id',
+            DB::raw("CONCAT(u.primer_apellido, IFNULL(CONCAT(' ', u.segundo_apellido), ''), ', ', u.primer_nombre, IFNULL(CONCAT(' ', u.segundo_nombre), '')) as nombre")
+        )->groupBy('u.id', 'u.primer_nombre', 'u.segundo_nombre', 'u.primer_apellido', 'u.segundo_apellido')
+         ->orderBy('u.primer_apellido')
+         ->orderBy('u.primer_nombre')
+         ->get();
+
+        return [
+            'periodos'  => $periodos,
+            'grupos'    => $grupos,
+            'docentes'  => $docentes,
+        ];
+    }
 }
