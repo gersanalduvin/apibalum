@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Aranceles - {{ $user->primer_nombre }} {{ $user->primer_apellido }}</title>
+    <title>Reporte de Aranceles por Grupo</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -62,11 +62,24 @@
             font-weight: bold;
             background-color: #eee;
         }
+
+        .page-break {
+            page-break-after: always;
+        }
     </style>
 </head>
 
 <body>
-    @include('pdf.aranceles-usuario-partial')
+    @foreach($students as $index => $student)
+        <div class="{{ $index < count($students) - 1 ? 'page-break' : '' }}">
+            @include('pdf.aranceles-usuario-partial', [
+                'user' => $student['user'],
+                'aranceles' => $student['aranceles'],
+                'grado' => $student['grado'],
+                'grupo' => $student['grupo']
+            ])
+        </div>
+    @endforeach
 </body>
 
 </html>

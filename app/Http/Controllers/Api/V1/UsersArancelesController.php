@@ -375,4 +375,21 @@ class UsersArancelesController extends Controller
             return $this->errorResponse('Error al generar el reporte PDF: ' . $e->getMessage(), [], 500);
         }
     }
+
+    /**
+     * Generar reporte PDF de aranceles para todos los alumnos de un grupo
+     */
+    public function generarPdfReporteGrupo(Request $request)
+    {
+        try {
+            $grupoId = $request->input('grupo_id');
+            if (!$grupoId) {
+                return $this->errorResponse('El ID del grupo es requerido', [], 400);
+            }
+            $filters = $request->only(['estado']);
+            return $this->usersArancelesService->generarPdfReporteGrupo((int)$grupoId, $filters);
+        } catch (Exception $e) {
+            return $this->errorResponse('Error al generar el reporte PDF por grupo: ' . $e->getMessage(), [], 500);
+        }
+    }
 }

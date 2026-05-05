@@ -87,6 +87,11 @@ Route::prefix('users-aranceles')->name('users-aranceles.')->group(function () {
         ->middleware('check.permissions:users_aranceles.estadisticas')
         ->name('estadisticas');
 
+    // Generar reporte PDF por grupo
+    Route::get('/reportes/reporte-grupo', [UsersArancelesController::class, 'generarPdfReporteGrupo'])
+        ->middleware('check.permissions:users_aranceles.reporte_pdf')
+        ->name('reporte-grupo');
+
     // Nuevos endpoints agregados
 
     // Obtener períodos lectivos

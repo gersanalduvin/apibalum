@@ -590,14 +590,49 @@ class UsersArancelesService
                 'institucion' => config('app.nombre_institucion', 'MINISTERIO DE EDUCACIÓN')
             ];
 
+            $titulo = 'REPORTE DE ARANCELES';
+            
+            // Determinar el periodo lectivo de los aranceles para buscar la matrícula correcta
+            $periodoId = null;
+            if ($aranceles->isNotEmpty()) {
+                $firstWithPeriod = $aranceles->first(function($a) {
+                    return $a->rubro?->planPago !== null;
+                });
+                if ($firstWithPeriod) {
+                    $periodoId = $firstWithPeriod->rubro->planPago->periodo_lectivo_id;
+                }
+            }
+            
+            // Si no se encontró periodo en los aranceles, buscar el periodo lectivo actual por defecto
+            if (!$periodoId) {
+                $periodoId = \App\Models\ConfPeriodoLectivo::where('periodo_matricula', true)->first()?->id;
+            }
+
+            // Buscar la matrícula del alumno para el periodo determinado
+            $matricula = $user->grupos()
+                ->where('estado', 'activo')
+                ->when($periodoId, function($q) use ($periodoId) {
+                    return $q->where('periodo_lectivo_id', $periodoId);
+                })
+                ->with(['grado', 'grupo.seccion'])
+                ->latest()
+                ->first();
+            
+            $grado = $matricula ? $matricula->grado : null;
+            $grupo = $matricula ? $matricula->grupo : null;
+            $perfil = ($grado && $grado->formato) ? $grado->formato : 'cuantitativo';
+            
+            $datos['grado'] = $grado;
+            $datos['grupo'] = $grupo;
+            $datos['perfil'] = $perfil;
+
             $html = view('pdf.aranceles-usuario', $datos)->render();
 
-            $titulo = 'REPORTE DE ARANCELES';
-            $subtitulo1 = 'Alumno: ' . $user->primer_nombre . ' ' . $user->segundo_nombre . ' ' . $user->primer_apellido . ' ' . $user->segundo_apellido;
+            $subtitulo1 = null; // Eliminamos el nombre del alumno del encabezado derecho (se marcó en rojo)
             $subtitulo2 = 'Estado: ' . strtoupper($filters['estado'] ?? 'TODOS');
-            $nombreInstitucion = $datos['institucion'];
+            $nombreInstitucion = config("institucion.{$perfil}.nombre", $datos['institucion']);
 
-            $headerHtml = view()->make('pdf.header', compact('titulo', 'subtitulo1', 'subtitulo2', 'nombreInstitucion'))->render();
+            $headerHtml = view()->make('pdf.header', compact('titulo', 'subtitulo1', 'subtitulo2', 'nombreInstitucion', 'perfil'))->render();
 
             $pdf = SnappyPdf::loadHTML($html)
                 ->setPaper('letter')
@@ -619,6 +654,106 @@ class UsersArancelesService
             return $pdf->stream($nombreArchivo);
         } catch (Exception $e) {
             Log::error('Error al generar PDF de aranceles: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Generar reporte PDF de aranceles para todos los alumnos de un grupo
+     */
+    public function generarPdfReporteGrupo(int $grupoId, array $filters = [])
+    {
+        try {
+            $matriculas = \App\Models\UsersGrupo::where('grupo_id', $grupoId)
+                ->where('estado', 'activo')
+                ->with(['user', 'grado', 'grupo.seccion'])
+                ->get()
+                ->sortBy(function($m) {
+                    return trim(($m->user->primer_apellido ?? '') . ' ' . ($m->user->segundo_apellido ?? '') . ' ' . ($m->user->primer_nombre ?? '') . ' ' . ($m->user->segundo_nombre ?? ''));
+                });
+
+            \Illuminate\Support\Facades\Log::info('Generando PDF para grupo ' . $grupoId . '. Alumnos: ' . $matriculas->count());
+
+            if ($matriculas->isEmpty()) {
+                throw new Exception('No hay alumnos activos en este grupo.');
+            }
+
+            $perfil = 'cuantitativo';
+            $nombreInstitucion = config('app.nombre_institucion', 'MINISTERIO DE EDUCACIÓN');
+            $gradoNombre = '';
+            $seccionNombre = '';
+
+            $studentsData = [];
+
+            foreach ($matriculas as $index => $matricula) {
+                $user = $matricula->user;
+                $grado = $matricula->grado;
+                $grupo = $matricula->grupo;
+                
+                if ($index === 0) {
+                    $perfil = ($grado && $grado->formato) ? $grado->formato : 'cuantitativo';
+                    $nombreInstitucion = config("institucion.{$perfil}.nombre", $nombreInstitucion);
+                    $gradoNombre = $grado ? $grado->nombre : 'N/A';
+                    $seccionNombre = $grupo->seccion->nombre ?? '';
+                }
+
+                $query = UsersAranceles::where('users_aranceles.user_id', $user->id)
+                    ->select('users_aranceles.*')
+                    ->leftJoin('config_plan_pago_detalle', 'users_aranceles.rubro_id', '=', 'config_plan_pago_detalle.id')
+                    ->with(['rubro.planPago', 'arancel']);
+
+                if (!empty($filters['estado'])) {
+                    if (strtolower($filters['estado']) === 'pagado') {
+                        $query->where('users_aranceles.estado', '!=', 'pendiente');
+                    } else {
+                        $query->where('users_aranceles.estado', $filters['estado']);
+                    }
+                }
+
+                $aranceles = $query->orderBy('config_plan_pago_detalle.orden_mes', 'asc')
+                    ->orderBy('users_aranceles.created_at', 'desc')
+                    ->get();
+
+                $studentsData[] = [
+                    'user' => $user,
+                    'aranceles' => $aranceles,
+                    'grado' => $grado,
+                    'grupo' => $grupo
+                ];
+            }
+
+            $titulo = 'REPORTE DE ARANCELES POR GRUPO';
+            $subtitulo1 = null;
+            $subtitulo2 = null;
+
+            $html = view('pdf.aranceles-grupo', [
+                'students' => $studentsData,
+                'perfil' => $perfil,
+                'estado' => $filters['estado'] ?? 'TODOS'
+            ])->render();
+
+            $headerHtml = view()->make('pdf.header', compact('titulo', 'subtitulo1', 'subtitulo2', 'nombreInstitucion', 'perfil'))->render();
+
+            $pdf = \Barryvdh\Snappy\Facades\SnappyPdf::loadHTML($html)
+                ->setPaper('letter')
+                ->setOrientation('portrait')
+                ->setOption('margin-top', 35)
+                ->setOption('margin-right', 10)
+                ->setOption('margin-bottom', 20)
+                ->setOption('margin-left', 10)
+                ->setOption('header-html', $headerHtml)
+                ->setOption('header-spacing', 5)
+                ->setOption('footer-left', 'Fecha y hora: [date] [time]')
+                ->setOption('footer-right', 'Página [page] de [toPage]')
+                ->setOption('footer-font-size', 8)
+                ->setOption('footer-spacing', 5)
+                ->setOption('load-error-handling', 'ignore');
+
+            $nombreArchivo = 'reporte_aranceles_grupo_' . str_replace(' ', '_', $gradoNombre) . '_' . now()->format('Ymd_His') . '.pdf';
+
+            return $pdf->stream($nombreArchivo);
+        } catch (Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error al generar PDF de aranceles por grupo: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             throw $e;
         }
     }

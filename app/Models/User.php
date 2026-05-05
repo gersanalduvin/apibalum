@@ -820,8 +820,8 @@ class User extends Authenticatable
                 'operaciones.docentes',
                 'observaciones.ver',
                 'observaciones.editar',
-                // Boletín Escolar y Consolidado de Notas (solo su grupo guía)
-                'generar.boletin',
+                // Boletín Escolar removido para docentes guía por requerimiento
+                // 'generar.boletin',
                 'generar.consolidado_notas',
             ])
         ) {
