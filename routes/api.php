@@ -66,6 +66,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     require __DIR__ . '/api/v1/reportes_notas.php';
     require __DIR__ . '/api/v1/boletin-escolar.php';
     require __DIR__ . '/api/v1/reportes_actividades.php';
+    require __DIR__ . '/api/v1/reporte-credenciales.php';
 
     // Auditoría
     require __DIR__ . '/api/v1/audits.php';
