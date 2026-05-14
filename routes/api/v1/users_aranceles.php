@@ -104,6 +104,11 @@ Route::prefix('users-aranceles')->name('users-aranceles.')->group(function () {
         ->middleware('check.permissions:users_aranceles.planes_pago_por_periodo')
         ->name('planes-pago-por-periodo');
 
+    // Endpoint manual para aplicar recargos vencidos
+    Route::post('/aplicar-recargos-vencidos', [UsersArancelesController::class, 'aplicarRecargosManual'])
+        ->middleware('check.permissions:users_aranceles.aplicar_recargos')
+        ->name('aplicar-recargos-vencidos');
+
     // Rutas CRUD con parámetros (AL FINAL para evitar conflictos)
     Route::get('/{id}', [UsersArancelesController::class, 'show'])
         ->middleware('check.permissions:users_aranceles.show')

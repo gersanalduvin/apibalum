@@ -138,8 +138,11 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="3" class="text-right" style="font-weight: bold; border: none; padding-top: 5px;">TOTAL:</td>
-                    <td class="text-right" style="font-weight: bold; font-size: 17px; border: 1px solid #ddd; padding-top: 5px;">
+                    <td colspan="2" style="border: none; padding-top: 10px; padding-bottom: 5px; font-size: 10px; color: #d32f2f; font-weight: bold; vertical-align: middle;">
+                        * NOTA: Después del 7 de cada mes se aplicará un recargo de C$ 295.00 *
+                    </td>
+                    <td class="text-right" style="font-weight: bold; border: none; padding-top: 10px; padding-bottom: 5px; vertical-align: middle;">TOTAL:</td>
+                    <td class="text-right" style="font-weight: bold; font-size: 17px; border: 1px solid #ddd; padding-top: 5px; padding-bottom: 5px;">
                         C$ {{ number_format($recibo->total, 2) }}
                     </td>
                 </tr>

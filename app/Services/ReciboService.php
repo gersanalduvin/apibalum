@@ -106,9 +106,15 @@ class ReciboService
                         $nuevoSaldoPagado = min((float)$arancel->saldo_pagado + (float)$totalDetalle, (float)$arancel->importe_total);
                         $nuevoSaldoActual = max(0.0, (float)$arancel->importe_total - $nuevoSaldoPagado);
                         $nuevoEstado = $nuevoSaldoActual <= 0.0 ? 'pagado' : 'pendiente';
+
+                        // Calcular recargo_pagado (Opción A: se cobra base primero)
+                        $importeBase = max(0.0, (float)$arancel->importe_total - (float)$arancel->recargo);
+                        $nuevoRecargoPagado = max(0.0, $nuevoSaldoPagado - $importeBase);
+
                         $this->usersArancelesRepository->update((int)$arancel->id, [
                             'saldo_pagado' => $nuevoSaldoPagado,
                             'saldo_actual' => $nuevoSaldoActual,
+                            'recargo_pagado' => $nuevoRecargoPagado,
                             'estado' => $nuevoEstado,
                         ]);
                     }
@@ -271,9 +277,14 @@ class ReciboService
 
                         $nuevoEstado = $nuevoSaldoActual > 0.001 ? 'pendiente' : 'pagado';
 
+                        // Recalcular recargo_pagado (Opción A: se cobra base primero)
+                        $importeBase = max(0.0, (float)$arancelUsuario->importe_total - (float)$arancelUsuario->recargo);
+                        $nuevoRecargoPagado = max(0.0, $nuevoSaldoPagado - $importeBase);
+
                         $this->usersArancelesRepository->update($arancelUsuario->id, [
                             'saldo_pagado' => $nuevoSaldoPagado,
                             'saldo_actual' => $nuevoSaldoActual,
+                            'recargo_pagado' => $nuevoRecargoPagado,
                             'estado' => $nuevoEstado,
                         ]);
                     }

@@ -452,6 +452,99 @@ class UsersArancelesService
     }
 
     /**
+     * Aplica recargos a los aranceles pendientes que ya vencieron.
+     * Si se provee un $userId, solo escanea los de ese usuario específico.
+     */
+    public function aplicarRecargosVencidos(?int $userId = null): array
+    {
+        try {
+            $hoy = now()->toDateString();
+            
+            // Obtener todos los aranceles pendientes con saldo mayor a 0 y que no tengan recargo aplicado
+            $query = UsersAranceles::where('estado', 'pendiente')
+                ->where('saldo_actual', '>', 0)
+                ->where('recargo', 0) // Asumimos recargo único
+                ->whereHas('rubro', function ($q) use ($hoy) {
+                    $q->whereNotNull('fecha_vencimiento')
+                          ->where('fecha_vencimiento', '<', $hoy)
+                          ->where(function ($q2) {
+                              $q2->where('importe_recargo', '>', 0)
+                                 ->orWhere('tipo_recargo', 'porcentaje');
+                          });
+                });
+
+            if ($userId) {
+                $query->where('user_id', $userId);
+            }
+
+            $arancelesPendientes = $query->with('rubro')->get();
+
+            $procesados = 0;
+            $errores = 0;
+
+            foreach ($arancelesPendientes as $arancel) {
+                try {
+                    $detallePlan = $arancel->rubro;
+                    
+                    if (!$detallePlan || !$detallePlan->fecha_vencimiento || $detallePlan->fecha_vencimiento->toDateString() >= $hoy) {
+                        continue;
+                    }
+
+                    $importeRecargo = (float) $detallePlan->importe_recargo;
+                    $tipoRecargo = $detallePlan->tipo_recargo;
+                    
+                    if ($importeRecargo <= 0 && $tipoRecargo !== 'porcentaje') {
+                        continue;
+                    }
+
+                    $nuevoRecargo = 0;
+                    
+                    // Calcular el recargo en base al tipo
+                    if ($tipoRecargo === 'porcentaje') {
+                        // El porcentaje se calcula sobre el importe base (importe - beca - descuento)
+                        // o sobre el importe total actual sin recargo. Usaremos importe_total que en este momento
+                        // no incluye recargo (ya que recargo == 0).
+                        $base = $arancel->importe - $arancel->beca - $arancel->descuento;
+                        $nuevoRecargo = max(0, $base * ($importeRecargo / 100));
+                    } else {
+                        // Monto fijo
+                        $nuevoRecargo = $importeRecargo;
+                    }
+
+                    if ($nuevoRecargo > 0) {
+                        DB::beginTransaction();
+                        
+                        $arancel->recargo = $nuevoRecargo;
+                        $arancel->importe_total = ($arancel->importe - $arancel->beca - $arancel->descuento) + $arancel->recargo;
+                        $arancel->saldo_actual = max(0, $arancel->importe_total - $arancel->saldo_pagado - $arancel->recargo_pagado);
+                        // En un cron, auth()->id() puede ser nulo, por lo que actualizamos a un usuario de sistema (1) o dejamos el existente
+                        $arancel->updated_by = auth()->id() ?? 1; 
+                        
+                        $arancel->save();
+                        
+                        DB::commit();
+                        $procesados++;
+                    }
+                } catch (Exception $e) {
+                    DB::rollBack();
+                    Log::error("Error al aplicar recargo al arancel ID {$arancel->id}: " . $e->getMessage());
+                    $errores++;
+                }
+            }
+
+            return [
+                'procesados' => $procesados,
+                'errores' => $errores,
+                'total_pendientes_encontrados' => $arancelesPendientes->count()
+            ];
+            
+        } catch (Exception $e) {
+            Log::error('Error general al ejecutar aplicarRecargosVencidos: ' . $e->getMessage());
+            throw new Exception('Error al aplicar los recargos vencidos');
+        }
+    }
+
+    /**
      * Obtener todos los períodos lectivos
      */
     public function getPeriodosLectivos()

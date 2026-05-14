@@ -27,3 +27,10 @@ Artisan::command('queue:test-email {to} {--type=simple} {--subject="Prueba de co
     ]);
     $this->info('Comando ejecutado. Revise logs para el resultado.');
 })->purpose('Despacha un SendEmailJob de prueba rápidamente');
+
+// Programar la aplicación automática de recargos a las mensualidades vencidas
+Artisan::command('schedule:aranceles-recargos', function () {
+    //
+})->purpose('Schedule configuration');
+
+\Illuminate\Support\Facades\Schedule::command('aranceles:aplicar-recargos')->dailyAt('00:01');

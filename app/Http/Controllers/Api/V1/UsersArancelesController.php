@@ -392,4 +392,18 @@ class UsersArancelesController extends Controller
             return $this->errorResponse('Error al generar el reporte PDF por grupo: ' . $e->getMessage(), [], 500);
         }
     }
+
+    /**
+     * Aplicar recargos manualmente a los aranceles vencidos
+     */
+    public function aplicarRecargosManual(Request $request): JsonResponse
+    {
+        try {
+            $userId = $request->input('user_id') ? (int) $request->input('user_id') : null;
+            $resultado = $this->usersArancelesService->aplicarRecargosVencidos($userId);
+            return $this->successResponse($resultado, 'Recargos aplicados exitosamente');
+        } catch (Exception $e) {
+            return $this->errorResponse('Error al aplicar recargos manuales: ' . $e->getMessage(), [], 500);
+        }
+    }
 }
