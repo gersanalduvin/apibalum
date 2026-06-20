@@ -26,6 +26,7 @@ class ConfPeriodoLectivoRequest extends FormRequest
             'incremento_familia' => 'required|integer|min:1',
             'periodo_nota' => 'sometimes|boolean',
             'periodo_matricula' => 'sometimes|boolean',
+            'bloquear_notas_familia' => 'sometimes|boolean',
         ];
         
         // Para actualización, hacer campos opcionales y manejar unique
@@ -82,6 +83,7 @@ class ConfPeriodoLectivoRequest extends FormRequest
             
             'periodo_nota.boolean' => 'El período de nota debe ser verdadero o falso',
             'periodo_matricula.boolean' => 'El período de matrícula debe ser verdadero o falso',
+            'bloquear_notas_familia.boolean' => 'El campo de bloquear notas debe ser verdadero o falso',
         ];
     }
     

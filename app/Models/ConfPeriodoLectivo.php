@@ -31,12 +31,14 @@ class ConfPeriodoLectivo extends Model
         'is_synced',
         'synced_at',
         'updated_locally_at',
-        'version'
+        'version',
+        'bloquear_notas_familia'
     ];
 
     protected $casts = [
         'periodo_nota' => 'boolean',
         'periodo_matricula' => 'boolean',
+        'bloquear_notas_familia' => 'boolean',
         'is_synced' => 'boolean',
         'synced_at' => 'datetime',
         'updated_locally_at' => 'datetime',
@@ -61,7 +63,8 @@ class ConfPeriodoLectivo extends Model
         'incremento_docente',
         'incremento_familia',
         'periodo_nota',
-        'periodo_matricula'];
+        'periodo_matricula',
+        'bloquear_notas_familia'];
     protected $nonAuditableFields = ['updated_at', 'created_at', 'deleted_at'
     ]; // Mantener para compatibilidad temporal
     protected $auditableEvents = ['updated'];
