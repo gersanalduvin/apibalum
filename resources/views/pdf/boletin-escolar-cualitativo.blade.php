@@ -152,12 +152,12 @@
         /* Indicators Table (Page 2) */
         .indicators-header {
             text-align: center;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
 
         .indicators-header h2 {
-            font-size: 9.5pt;
-            margin: 1px 0;
+            font-size: 10pt;
+            margin: 2px 0;
         }
 
         .main-table {
@@ -168,14 +168,14 @@
         .main-table th,
         .main-table td {
             border: 1px solid #000;
-            padding: 0.5px 2px;
+            padding: 1.2px 2px;
             vertical-align: middle;
         }
 
         .main-table th {
             background-color: #fff;
             font-weight: bold;
-            font-size: 7.5pt;
+            font-size: 8pt;
         }
 
         .col-no {
@@ -195,8 +195,8 @@
 
         .indicator-text {
             text-align: left;
-            font-size: 7.5pt;
-            line-height: 1.1;
+            font-size: 8pt;
+            line-height: 1.15;
         }
 
         .inline-checkbox {
@@ -371,11 +371,11 @@
         </div>
         <div class="indicators-page">
             {{-- PAGE 2: Indicators --}}
-            <div class="indicators-header" style="text-align: center; margin-bottom: 4px; padding-top: 0px; width: 100%; box-sizing: border-box;">
-                <div style="font-weight: bold; font-size: 9pt;">Ámbitos de Aprendizaje:</div>
+            <div class="indicators-header" style="text-align: center; margin-bottom: 8px; padding-top: 2px; width: 100%; box-sizing: border-box;">
+                <div style="font-weight: bold; font-size: 9.5pt;">Ámbitos de Aprendizaje:</div>
                 <div style="font-weight: bold; font-style: italic; font-size: 8.5pt;">Dimensiones: Comunicación y Lenguaje, Cognitiva, Física, Emocional y Social.</div>
             </div>
-            <div style="width: 100%; display: table; table-layout: fixed; border-spacing: 10px 0;">
+            <div style="width: 100%; display: table; table-layout: fixed; border-spacing: 12px 0;">
                 @php
                 // 1. Calculate weighted height for each evidence to balance columns based on estimated line count
                 $weightedEvidences = [];
@@ -444,8 +444,8 @@
                             $finalScale = $grade['display'] ?? ($grade['escala_abreviatura'] ?? '');
                             @endphp
                             <tr>
-                                <td class="col-no" style="font-weight: normal; font-size: 7.5pt;">{{ $item['original_index'] + 1 }}</td>
-                                <td class="indicator-text" style="font-weight: normal; font-size: 7.5pt; line-height: 1.1;">
+                                <td class="col-no" style="font-weight: normal; font-size: 8pt;">{{ $item['original_index'] + 1 }}</td>
+                                <td class="indicator-text" style="font-weight: normal; font-size: 8pt; line-height: 1.15;">
                                     @php
                                     $evName = $grade['evidence_name'] ?? 'Evidencia';
                                     $evParts = explode('|', $evName);
@@ -453,8 +453,8 @@
                                     {{ str_replace('*', '', $evParts[0]) }}
                                     {{ $evParts[1] ?? '' }}
                                 </td>
-                                <td class="col-aa" style="text-align: center; font-weight: bold; font-size: 7.5pt;">@if($finalScale == 'AA') AA @endif</td>
-                                <td class="col-ap" style="text-align: center; font-weight: bold; font-size: 7.5pt;">@if($finalScale == 'AP') AP @endif</td>
+                                <td class="col-aa" style="text-align: center; font-weight: bold; font-size: 8pt;">@if($finalScale == 'AA') AA @endif</td>
+                                <td class="col-ap" style="text-align: center; font-weight: bold; font-size: 8pt;">@if($finalScale == 'AP') AP @endif</td>
                             </tr>
                             @endforeach
                         </tbody>

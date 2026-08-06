@@ -212,7 +212,7 @@ class BoletinEscolarService
             $view = 'pdf.boletin-escolar-cualitativo';
             $orientation = 'Landscape';
         }
-        $zoom = (($grupo->grado->formato ?? 'cuantitativo') === 'cualitativo') ? 1.20 : 1.0;
+        $zoom = (($grupo->grado->formato ?? 'cuantitativo') === 'cualitativo') ? 1.25 : 1.0;
         
         // Generate PDF
         $pdf = Pdf::loadView($view, $data);
