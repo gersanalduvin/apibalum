@@ -6,7 +6,7 @@
     <title>Boletín Cualitativo - {{ $grupo->grado->nombre }}</title>
     <style>
         @page {
-            margin: 0.2cm;
+            margin: 0.15cm;
         }
 
         body {
@@ -152,12 +152,12 @@
         /* Indicators Table (Page 2) */
         .indicators-header {
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 4px;
         }
 
         .indicators-header h2 {
-            font-size: 10pt;
-            margin: 2px 0;
+            font-size: 9.5pt;
+            margin: 1px 0;
         }
 
         .main-table {
@@ -168,13 +168,14 @@
         .main-table th,
         .main-table td {
             border: 1px solid #000;
-            padding: 1px 2px;
+            padding: 0.5px 2px;
             vertical-align: middle;
         }
 
         .main-table th {
             background-color: #fff;
             font-weight: bold;
+            font-size: 7.5pt;
         }
 
         .col-no {
@@ -194,7 +195,8 @@
 
         .indicator-text {
             text-align: left;
-            font-size: 7pt;
+            font-size: 7.5pt;
+            line-height: 1.1;
         }
 
         .inline-checkbox {
@@ -369,27 +371,35 @@
         </div>
         <div class="indicators-page">
             {{-- PAGE 2: Indicators --}}
-            <div class="indicators-header" style="text-align: center; margin-bottom: 10px; padding-top: 5px; width: 100%; box-sizing: border-box;">
+            <div class="indicators-header" style="text-align: center; margin-bottom: 4px; padding-top: 0px; width: 100%; box-sizing: border-box;">
                 <div style="font-weight: bold; font-size: 9pt;">Ámbitos de Aprendizaje:</div>
                 <div style="font-weight: bold; font-style: italic; font-size: 8.5pt;">Dimensiones: Comunicación y Lenguaje, Cognitiva, Física, Emocional y Social.</div>
             </div>
-            <div style="width: 100%; display: table; table-layout: fixed; border-spacing: 20px 0;">
+            <div style="width: 100%; display: table; table-layout: fixed; border-spacing: 10px 0;">
                 @php
-                // 1. Calculate weighted height for each evidence to balance columns
+                // 1. Calculate weighted height for each evidence to balance columns based on estimated line count
                 $weightedEvidences = [];
                 $totalWeight = 0;
                 foreach($academicEvidences as $index => $grade) {
-                $config = $grade['indicador_config'] ?? [];
-                $criteria = $config['criterios'] ?? (isset($config['criterio']) ? (is_array($config['criterio']) ? $config['criterio'] : [$config['criterio']]) : []);
+                    $config = $grade['indicador_config'] ?? [];
+                    $criteria = $config['criterios'] ?? (isset($config['criterio']) ? (is_array($config['criterio']) ? $config['criterio'] : [$config['criterio']]) : []);
 
-                // Weight: 1 (title) + ~0.33 per criterion (assuming 3 criteria per line)
-                $weight = 1 + (ceil(count($criteria) / 3) * 0.8);
-                $weightedEvidences[] = [
-                'data' => $grade,
-                'weight' => $weight,
-                'original_index' => $index
-                ];
-                $totalWeight += $weight;
+                    $evName = $grade['evidence_name'] ?? 'Evidencia';
+                    $evParts = explode('|', $evName);
+                    $cleanName = trim(str_replace('*', '', $evParts[0]) . ' ' . ($evParts[1] ?? ''));
+
+                    // Estimate lines based on text length (~40 chars per line in half-page table column)
+                    $textLen = mb_strlen($cleanName);
+                    $estimatedLines = ceil($textLen / 40);
+
+                    // Weight: estimated lines + extra for criteria if any
+                    $weight = max(1, $estimatedLines) + (ceil(count($criteria) / 3) * 0.8);
+                    $weightedEvidences[] = [
+                        'data' => $grade,
+                        'weight' => $weight,
+                        'original_index' => $index
+                    ];
+                    $totalWeight += $weight;
                 }
 
                 // 2. Find split point (closest to 50% of total weight)
@@ -399,58 +409,58 @@
                 $splitIndexFound = false;
 
                 foreach($weightedEvidences as $item) {
-                if (!$splitIndexFound && ($currentWeight + $item['weight'] / 2) <= ($totalWeight / 2)) {
-                    $leftChunk[]=$item;
-                    $currentWeight +=$item['weight'];
+                    if (!$splitIndexFound && ($currentWeight + $item['weight'] / 2) <= ($totalWeight / 2)) {
+                        $leftChunk[] = $item;
+                        $currentWeight += $item['weight'];
                     } else {
-                    $splitIndexFound=true;
-                    $rightChunk[]=$item;
+                        $splitIndexFound = true;
+                        $rightChunk[] = $item;
                     }
-                    }
+                }
 
-                    $chunks=[$leftChunk, $rightChunk];
-                    @endphp
+                $chunks = [$leftChunk, $rightChunk];
+                @endphp
 
-                    @foreach($chunks as $chunkIndex=> $chunk)
-                    <div style="display: table-cell; vertical-align: top; width: 50%; padding: 0 5px;">
-                        <table class="main-table" style="width: 100%;">
-                            <thead>
-                                <tr>
-                                    <th class="col-no">No.</th>
-                                    <th>Evidencias de Aprendizaje</th>
-                                    <th class="col-aa">AA</th>
-                                    <th class="col-ap">AP</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($chunk as $item)
-                                @php
-                                $grade = $item['data'];
-                                $config = $grade['indicador_config'] ?? [];
-                                $checks = $grade['indicadores_check'] ?? [];
-                                $criteria = $config['criterios'] ?? (isset($config['criterio']) ? (is_array($config['criterio']) ? $config['criterio'] : [$config['criterio']]) : []);
+                @foreach($chunks as $chunkIndex => $chunk)
+                <div style="display: table-cell; vertical-align: top; width: 50%; padding: 0 2px;">
+                    <table class="main-table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th class="col-no">No.</th>
+                                <th>Evidencias de Aprendizaje</th>
+                                <th class="col-aa">AA</th>
+                                <th class="col-ap">AP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($chunk as $item)
+                            @php
+                            $grade = $item['data'];
+                            $config = $grade['indicador_config'] ?? [];
+                            $checks = $grade['indicadores_check'] ?? [];
+                            $criteria = $config['criterios'] ?? (isset($config['criterio']) ? (is_array($config['criterio']) ? $config['criterio'] : [$config['criterio']]) : []);
 
-                                $isSelect = ($config['type'] ?? '') === 'select';
-                                $finalScale = $grade['display'] ?? ($grade['escala_abreviatura'] ?? '');
-                                @endphp
-                                <tr>
-                                    <td class="col-no" style="font-weight: normal; font-size: 7.5pt;">{{ $item['original_index'] + 1 }}</td>
-                                    <td class="indicator-text" style="font-weight: normal; font-size: 8pt; line-height: 1.2;">
-                                        @php
-                                        $evName = $grade['evidence_name'] ?? 'Evidencia';
-                                        $evParts = explode('|', $evName);
-                                        @endphp
-                                        {{ str_replace('*', '', $evParts[0]) }}
-                                        {{ $evParts[1] ?? '' }}
-                                    </td>
-                                    <td class="col-aa" style="text-align: center; font-weight: bold; font-size: 8pt;">@if($finalScale == 'AA') AA @endif</td>
-                                    <td class="col-ap" style="text-align: center; font-weight: bold; font-size: 8pt;">@if($finalScale == 'AP') AP @endif</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    @endforeach
+                            $isSelect = ($config['type'] ?? '') === 'select';
+                            $finalScale = $grade['display'] ?? ($grade['escala_abreviatura'] ?? '');
+                            @endphp
+                            <tr>
+                                <td class="col-no" style="font-weight: normal; font-size: 7.5pt;">{{ $item['original_index'] + 1 }}</td>
+                                <td class="indicator-text" style="font-weight: normal; font-size: 7.5pt; line-height: 1.1;">
+                                    @php
+                                    $evName = $grade['evidence_name'] ?? 'Evidencia';
+                                    $evParts = explode('|', $evName);
+                                    @endphp
+                                    {{ str_replace('*', '', $evParts[0]) }}
+                                    {{ $evParts[1] ?? '' }}
+                                </td>
+                                <td class="col-aa" style="text-align: center; font-weight: bold; font-size: 7.5pt;">@if($finalScale == 'AA') AA @endif</td>
+                                <td class="col-ap" style="text-align: center; font-weight: bold; font-size: 7.5pt;">@if($finalScale == 'AP') AP @endif</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @endforeach
             </div> {{-- Close table-container --}}
         </div> {{-- Close indicators-page --}}
     </div> {{-- Close student-report --}}
